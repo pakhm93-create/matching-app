@@ -1,0 +1,28 @@
+# 의존성 (용량이 크고 재설치 가능하므로 저장하지 않음)
+node_modules/
+.pnp
+.pnp.js
+
+# 빌드 결과물
+.next/
+out/
+build/
+dist/
+
+# 환경변수 — 비밀번호/API 키가 들어가는 파일. 절대 저장 금지
+.env
+.env.local
+.env*.local
+
+# 로그
+*.log
+npm-debug.log*
+
+# OS 자동 생성 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터
+.vscode/
+.idea/
