@@ -1,13 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { User } from '@/lib/types';
-import { calcAge } from '@/lib/types';
+import type { Strictness, User } from '@/lib/types';
+import { calcAge, STRICTNESS_THRESHOLD } from '@/lib/types';
 import { deriveFacts, politicsLabel } from '@/lib/facts';
 import { extraTraits, personaOf } from '@/lib/personality';
 import { stanceDisplayName } from '@/lib/stances';
 import * as L from '@/lib/labels';
 import { Button, Modal, Shell } from './ui';
+
+const STRICTNESS_LABEL: Record<Strictness, string> = {
+  strict: '깐깐하게',
+  balanced: '어느 정도',
+  relaxed: '느긋하게',
+};
 
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-3xl border border-line bg-surface p-5 mb-3">{children}</div>;
@@ -27,11 +33,12 @@ function Row({ label, value }: { label: string; value: string }) {
  * 설문을 마치면 여기에 도착한다. 매칭 결과로 바로 넘어가지 않는다.
  */
 export function ProfilePage({
-  me, onEdit, onPreviewMatches, justFinished, onDismiss,
+  me, onEdit, onPreviewMatches, onChangeStrictness, justFinished, onDismiss,
 }: {
   me: User;
   onEdit: () => void;
   onPreviewMatches: () => void;
+  onChangeStrictness: () => void;
   /** 설문을 방금 마쳤으면 완료 안내를 팝업으로 띄운다 */
   justFinished?: boolean;
   onDismiss?: () => void;
@@ -46,6 +53,9 @@ export function ProfilePage({
   const ageText = me.ageRange
     ? `${me.ageRange.min}세 ~ ${me.ageRange.max}세`
     : '상관없음';
+
+  const strictness: Strictness = me.strictness ?? 'balanced';
+  const threshold = STRICTNESS_THRESHOLD[strictness];
 
   return (
     <>
@@ -94,9 +104,16 @@ export function ProfilePage({
             <span className="text-[15px] font-semibold">인연을 찾고 있어요</span>
           </div>
           <p className="text-[13px] text-muted leading-relaxed">
-            조건이 맞는 분들 중에서 성향이 가장 가까운 분을 고르고 있어요.
+            <b className="text-foreground">궁합 {threshold}점 이상</b>인 분을 찾고 있어요
+            ({STRICTNESS_LABEL[strictness]}).
             준비되면 알림으로 알려드릴게요.
           </p>
+          <button
+            onClick={onChangeStrictness}
+            className="mt-3 text-[13px] text-accent font-medium active:opacity-60"
+          >
+            매칭 기준 바꾸기
+          </button>
           <button
             onClick={onPreviewMatches}
             className="mt-4 w-full rounded-2xl border border-line py-3 text-[13px] text-muted active:scale-[0.98] transition"
@@ -125,6 +142,7 @@ export function ProfilePage({
           <div className="border-t border-line pt-1">
             <Row label="만날 수 있는 지역" value={p.areas.join(', ')} />
             <Row label="원하는 나이" value={ageText} />
+            <Row label="매칭 기준" value={`궁합 ${threshold}점 이상`} />
             {me.heightRange && (
               <Row label="원하는 키" value={`${me.heightRange.min} ~ ${me.heightRange.max}cm`} />
             )}

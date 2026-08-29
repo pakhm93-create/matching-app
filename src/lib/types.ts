@@ -95,8 +95,16 @@ export interface Question {
    */
   fact?: FactKey;
   factValues?: string[];
-  /** 정치 성향 계산에 쓰이는 문항인가. 1(진보 동의) ~ 5(보수 동의) 방향 */
-  politicsAxis?: boolean;
+  /**
+   * 정치 성향 계산에 얼마나 기여하는가 (0~1). 없으면 기여하지 않는다.
+   *
+   * 한 문항이 하나의 축만 재야 하는 것은 아니다.
+   * "집안일은 성별과 무관하게 나눠야 한다"는 역할관을 묻는 문항이지만
+   * 정치 성향과도 상관이 있다. 그런 문항은 낮은 기여도로 함께 반영한다.
+   */
+  politicsWeight?: number;
+  /** 동의할수록 진보 쪽이면 true (계산할 때 뒤집어서 "높을수록 보수"로 맞춘다) */
+  politicsReverse?: boolean;
   /** 이 문항이 어떤 절대 조건과 연결되는가 (선택 시 가중치 상승) */
   stanceGroup?: string;
 }
@@ -104,10 +112,22 @@ export interface Question {
 export type AnswerValue = number | string | string[];
 export type Answers = Record<string, AnswerValue>;
 
+/** 얼마나 깐깐하게 매칭할지 — 설문을 마친 뒤 사용자가 고른다 */
+export type Strictness = 'strict' | 'balanced' | 'relaxed';
+
+/** 각 기준이 요구하는 최소 궁합 점수 */
+export const STRICTNESS_THRESHOLD: Record<Strictness, number> = {
+  strict: 90,
+  balanced: 80,
+  relaxed: 65,
+};
+
 export interface User {
   profile: Profile;
   /** 사용자가 고른 절대 조건 태그 id (0~3개) */
   stanceIds: string[];
+  /** 매칭 기준. 정하지 않았으면 balanced로 본다 */
+  strictness?: Strictness;
   /** 나이 범위. null이면 상관없음 */
   ageRange: { min: number; max: number } | null;
   /** 키 범위 (절대 조건으로 키를 골랐을 때만) */

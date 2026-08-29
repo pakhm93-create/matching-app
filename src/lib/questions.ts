@@ -5,7 +5,8 @@
  *    bigFive 필드는 내부 집계 전용이다.
  *
  * 정치 성향은 "본인이 진보인가 보수인가"를 묻지 않는다.
- * 실제 이슈에 대한 태도를 물어 우리가 계산한다 (politicsAxis).
+ * 실제 이슈에 대한 태도를 물어 우리가 계산한다 (politicsWeight).
+ * 한 문항이 한 축만 재는 것은 아니다 — 역할관 문항도 정치 성향에 일부 기여한다.
  *
  * 흡연·음주·종교·결혼·자녀·운동도 기본 정보에서 받지 않고 여기서 파악한다.
  * 이 응답이 절대 조건(하드 필터)의 판정 재료가 된다.
@@ -69,21 +70,22 @@ export const QUESTIONS: Question[] = [
     options: ['주 3회 이상', '가끔 해요', '거의 안 해요'] },
 
   // ── 정치 성향 (이슈로 파악) ───────────────────────────
-  // reverse = 동의할수록 진보. 계산할 때 뒤집어서 "높을수록 보수"로 맞춘다.
-  { id: 'pol1', section: 'values', type: 'scale', politicsAxis: true, reverse: true,
+  // politicsReverse = 동의할수록 진보. 계산할 때 뒤집어서 "높을수록 보수"로 맞춘다.
+  { id: 'pol1', section: 'values', type: 'scale', politicsWeight: 1, politicsReverse: true,
     stanceGroup: '정치',
     text: '동성 결혼을 법적으로 인정해야 한다' },
-  { id: 'pol2', section: 'values', type: 'scale', politicsAxis: true, reverse: true,
+  { id: 'pol2', section: 'values', type: 'scale', politicsWeight: 1, politicsReverse: true,
     stanceGroup: '정치',
     text: '복지를 늘리기 위해서라면 세금을 더 낼 수 있다' },
-  { id: 'pol3', section: 'values', type: 'scale', politicsAxis: true,
+  { id: 'pol3', section: 'values', type: 'scale', politicsWeight: 1,
     stanceGroup: '정치',
     text: '기업에 대한 규제는 지금보다 완화해야 한다' },
 
   // ── 가치관 ────────────────────────────────────────────
   { id: 'v1', section: 'values', type: 'scale', stanceGroup: '종교',
     text: '신앙이 내 삶에서 차지하는 비중이 크다' },
-  { id: 'v2', section: 'values', type: 'scale',
+  // 역할관 문항이지만 정치 성향과도 상관이 있어 낮은 기여도로 함께 반영한다
+  { id: 'v2', section: 'values', type: 'scale', politicsWeight: 0.3, politicsReverse: true,
     text: '집안일과 육아는 성별과 무관하게 나눠야 한다' },
   { id: 'v3', section: 'values', type: 'scale',
     text: '저축보다 지금의 경험에 돈을 쓰는 게 낫다' },

@@ -8,7 +8,7 @@
  *  3) 무작위 50명의 점수 분포가 한쪽에 쏠려 있지 않은가
  *  4) 하드 필터가 실제로 후보를 걸러내는가
  */
-import { calcAge, type Section, type User } from '../src/lib/types';
+import { calcAge, STRICTNESS_THRESHOLD, type Section, type User } from '../src/lib/types';
 import { computeMatch, findMatches, passesHardFilter, prepare } from '../src/lib/matching';
 import { generatePlantedUsers, generateUsers } from '../src/lib/fake-users';
 import { SECTION_LABELS } from '../src/lib/questions';
@@ -119,4 +119,43 @@ const meMale: User = {
 };
 line(`  → 활동 지역이 하나라도 겹치면 통과하는가: ${passesHardFilter(prepare(meMale), prepare(overlapping)) ? '✅' : '❌'}`);
 
+hr();
+
+// ── 5) 매칭 기준(궁합 점수)이 현실적인가 ────────
+hr();
+line('4. 매칭 기준 검증');
+hr();
+line('  깐깐/추천/여유 기준이 실제로 몇 명을 통과시키는지 본다.');
+line('  아무도 통과 못 하면 기준이 무의미하고, 다 통과하면 기준이 없는 것과 같다.');
+line('');
+
+const bigPool = generateUsers(400, 99);
+const sampleSize = 40;
+const perPerson: Record<string, number> = {};
+const allScores: number[] = [];
+
+for (let i = 0; i < sampleSize; i++) {
+  const ms = findMatches(bigPool[i], bigPool);
+  for (const m of ms) allScores.push(m.score);
+  for (const [k, t] of Object.entries(STRICTNESS_THRESHOLD)) {
+    perPerson[k] = (perPerson[k] ?? 0) + ms.filter((m) => m.score >= t).length;
+  }
+}
+allScores.sort((a, b) => a - b);
+const at = (p: number) => allScores[Math.floor(allScores.length * p)];
+
+line(`  표본 ${sampleSize}명 × 400명 풀 = ${allScores.length}쌍`);
+line(`  중앙값 ${at(0.5).toFixed(1)}점 · 상위10% ${at(0.9).toFixed(1)}점 · 상위1% ${at(0.99).toFixed(1)}점`);
+line('');
+const NAMES: Record<string, string> = { strict: '깐깐하게', balanced: '어느 정도(추천)', relaxed: '느긋하게' };
+let ok = true;
+for (const [k, t] of Object.entries(STRICTNESS_THRESHOLD)) {
+  const avg = perPerson[k] / sampleSize;
+  // 한 명당 0.5~15명 사이면 배급 모델로 쓸 만하다
+  const good = avg >= 0.5 && avg <= 15;
+  if (!good) ok = false;
+  line(`  ${t}점 이상 · ${NAMES[k]}: 1인당 평균 ${avg.toFixed(1)}명  ${good ? '✅' : '❌'}`);
+}
+line('');
+line(`  → 세 기준이 모두 쓸 만한가: ${ok ? '✅' : '❌ 기준 점수나 눈금(RAW_CEILING)을 조정할 것'}`);
 hr();

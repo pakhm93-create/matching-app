@@ -41,6 +41,43 @@ function randomAnswers(rnd: () => number): Answers {
   return answers;
 }
 
+/**
+ * 성향이 비슷한 무리(클러스터)를 몇 개 만든다.
+ *
+ * 완전 무작위로 만들면 궁합이 높은 사람이 애초에 존재하지 않아
+ * 최고 점수가 40점대에 머문다. 실제 사람은 성향이 뭉쳐 다니므로
+ * 무리를 만들고 거기에 잡음을 섞어야 현실적인 점수 분포가 나온다.
+ */
+const CLUSTER_COUNT = 6;
+
+function makeClusters(): Answers[] {
+  return Array.from({ length: CLUSTER_COUNT }, (_, i) =>
+    randomAnswers(makeRandom(1000 + i * 37)),
+  );
+}
+
+/** 무리의 기준 답변에 잡음을 섞어 한 사람을 만든다 */
+function answersNearCluster(rnd: () => number, center: Answers): Answers {
+  const answers: Answers = {};
+  for (const q of QUESTIONS) {
+    const c = center[q.id];
+    if (q.type === 'scale') {
+      // 70%는 기준값 그대로, 나머지는 한두 칸 흔든다
+      const drift = rnd() < 0.7 ? 0 : rnd() < 0.8 ? (rnd() < 0.5 ? -1 : 1) : (rnd() < 0.5 ? -2 : 2);
+      answers[q.id] = Math.max(1, Math.min(5, (c as number) + drift));
+    } else if (q.type === 'choice') {
+      answers[q.id] = rnd() < 0.75 ? (c as string) : pick(rnd, q.options!);
+    } else {
+      // 무리의 관심사 중 일부를 가져가고 한두 개는 자기 것을 더한다
+      const base = (c as string[]).filter(() => rnd() < 0.7);
+      const extra = q.options!.filter((o) => !base.includes(o) && rnd() < 0.15);
+      answers[q.id] = base.concat(extra).slice(0, 6);
+      if ((answers[q.id] as string[]).length === 0) answers[q.id] = [pick(rnd, q.options!)];
+    }
+  }
+  return answers;
+}
+
 /** 활동 가능 지역 (겹치는 지역이 있으면 매칭 가능) */
 function randomAreas(rnd: () => number, home: string): string[] {
   const areas = new Set([home]);
@@ -70,17 +107,23 @@ function randomProfile(rnd: () => number, i: number, gender: Gender): Profile {
   };
 }
 
-export function generateUsers(count: number, seed = 42): User[] {
+/**
+ * @param clustered 성향이 비슷한 무리를 만들어 현실적인 점수 분포를 낸다.
+ *                  false면 완전 무작위 (알고리즘의 바닥값을 볼 때 쓴다)
+ */
+export function generateUsers(count: number, seed = 42, clustered = true): User[] {
   const rnd = makeRandom(seed);
+  const clusters = makeClusters();
   const users: User[] = [];
   for (let i = 1; i <= count; i++) {
     const gender: Gender = i % 2 === 0 ? 'female' : 'male';
+    const center = clusters[Math.floor(rnd() * clusters.length)];
     users.push({
       profile: randomProfile(rnd, i, gender),
       // 검증용이라 조건은 넉넉하게 (하드 필터에 잘 걸리지 않게)
       stanceIds: [],
       ageRange: { min: 20, max: 60 },
-      answers: randomAnswers(rnd),
+      answers: clustered ? answersNearCluster(rnd, center) : randomAnswers(rnd),
     });
   }
   return users;

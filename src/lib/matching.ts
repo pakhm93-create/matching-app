@@ -182,17 +182,28 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
 // ────────────────────────────────────────────
 
 /**
- * 아무 상관 없는 두 사람이라도 원점수는 0.5 근처가 나온다.
- * 5점 척도에서 무작위로 답해도 평균적으로 절반은 겹치기 때문이다.
- * 그대로 "궁합 54%"로 보여주면 숫자가 의미를 잃는다.
+ * 원점수를 사용자에게 보여줄 "궁합 점수"로 바꾼다.
  *
- * ⚠️ 실제 사용자 데이터가 쌓이면 반드시 재조정할 것.
- *    (실사용자 전체 조합의 하위 5% 지점으로 맞추는 것이 정석)
+ * 눈금을 두 군데서 잡는다.
+ *
+ * BASELINE — 아무 상관 없는 두 사람도 원점수는 0.5 근처가 나온다.
+ *   5점 척도에서 무작위로 답해도 평균적으로 절반은 겹치기 때문이다.
+ *   이 바닥을 0점으로 끌어내린다.
+ *
+ * CEILING — 반대로 원점수 1.0(모든 문항이 완전히 같음)은 현실에서 나오지 않는다.
+ *   천장을 1.0으로 두면 아무리 잘 맞는 두 사람도 70점대에 머물러
+ *   "궁합 90점" 같은 기준이 영원히 도달 불가능해진다.
+ *   그래서 현실적인 상한을 천장으로 잡는다.
+ *
+ * ⚠️ 두 값 모두 실제 사용자 데이터가 쌓이면 반드시 다시 잡아야 한다.
+ *    기준은 백분위다 — 90점이 상위 1~2%, 80점이 상위 5% 안쪽,
+ *    65점이 상위 15~20%쯤 되도록 맞춘다.
  */
 export const RAW_BASELINE = 0.42;
+export const RAW_CEILING = 0.92;
 
 export function calibrateScore(raw: number): number {
-  const stretched = (raw - RAW_BASELINE) / (1 - RAW_BASELINE);
+  const stretched = (raw - RAW_BASELINE) / (RAW_CEILING - RAW_BASELINE);
   return Math.round(Math.max(0, Math.min(1, stretched)) * 1000) / 10;
 }
 

@@ -24,17 +24,22 @@ export function deriveFacts(answers: Answers): Facts {
     }
   }
 
-  // 정치 성향: 이슈 문항들의 평균. 높을수록 보수가 되도록 방향을 맞춘다.
-  const polQs = QUESTIONS.filter((q) => q.politicsAxis);
-  const values: number[] = [];
-  for (const q of polQs) {
+  // 정치 성향: 이슈 문항들의 가중 평균. 높을수록 보수가 되도록 방향을 맞춘다.
+  //
+  // 한 문항이 한 축만 재는 것은 아니다. 예를 들어 "집안일은 성별과 무관하게
+  // 나눠야 한다"는 역할관 문항이지만 정치 성향과도 상관이 있다.
+  // 그런 문항은 낮은 기여도(politicsWeight)로 함께 반영한다.
+  let sumW = 0;
+  let sumV = 0;
+  for (const q of QUESTIONS) {
+    if (!q.politicsWeight) continue;
     const v = answers[q.id];
     if (typeof v !== 'number') continue;
-    values.push(q.reverse ? 6 - v : v);
+    sumW += q.politicsWeight;
+    sumV += q.politicsWeight * (q.politicsReverse ? 6 - v : v);
   }
-  if (values.length > 0) {
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    facts.politics = Math.round(mean * 10) / 10;
+  if (sumW > 0) {
+    facts.politics = Math.round((sumV / sumW) * 10) / 10;
   }
 
   return facts;

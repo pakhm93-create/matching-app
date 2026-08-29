@@ -1,22 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import type { Answers, User } from '@/lib/types';
+import type { Answers, Strictness, User } from '@/lib/types';
 import { QUESTIONS } from '@/lib/questions';
 import { ProfileStep, type ProfileResult } from '@/components/ProfileStep';
 import { StanceStep, type StanceResult } from '@/components/StanceStep';
 import { SurveyStep } from '@/components/SurveyStep';
+import { StrictnessStep } from '@/components/StrictnessStep';
 import { ProfilePage } from '@/components/ProfilePage';
 import { MatchesView } from '@/components/MatchesView';
 import { Button, Shell } from '@/components/ui';
 
-type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'me' | 'matches';
+type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'strictness' | 'me' | 'matches';
 
 export default function Page() {
   const [step, setStep] = useState<Step>('intro');
   const [profileResult, setProfileResult] = useState<ProfileResult>();
   const [stanceResult, setStanceResult] = useState<StanceResult>();
   const [answers, setAnswers] = useState<Answers>({});
+  const [strictness, setStrictness] = useState<Strictness>('balanced');
   /** 설문을 방금 마쳤는가 — 프로필 화면에서 완료 팝업을 띄우기 위한 것 */
   const [justFinished, setJustFinished] = useState(false);
   /** 수정 중이면 설문을 다시 시키지 않고 프로필로 돌려보낸다 */
@@ -36,21 +38,6 @@ export default function Page() {
             {QUESTIONS.length}개의 질문으로 가치관, 연애 스타일, 생활 습관까지
             꼼꼼히 살펴본 뒤 가장 잘 맞는 분을 찾아드립니다.
           </p>
-          <div className="mt-8 flex flex-col gap-3">
-            {[
-              ['절대 조건 3가지', '양보 못 하는 것만 3개, 확실히 지켜드려요'],
-              [`${QUESTIONS.length}개의 질문`, '5분이면 충분해요'],
-              ['서로 맞아야 매칭', '한쪽만 좋은 매칭은 보여주지 않아요'],
-            ].map(([t, d]) => (
-              <div key={t} className="flex gap-3 items-start">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
-                <div>
-                  <div className="text-[15px] font-semibold">{t}</div>
-                  <div className="text-[13px] text-muted mt-0.5">{d}</div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </Shell>
     );
@@ -88,7 +75,22 @@ export default function Page() {
         initial={answers}
         onDone={(a) => {
           setAnswers(a);
-          setJustFinished(true);
+          setStep('strictness');
+        }}
+      />
+    );
+  }
+
+  if (step === 'strictness') {
+    return (
+      <StrictnessStep
+        progress={0.97}
+        initial={strictness}
+        onNext={(v) => {
+          setStrictness(v);
+          // 처음 설문을 마친 경우에만 완료 안내를 띄운다
+          if (!editing) setJustFinished(true);
+          setEditing(false);
           setStep('me');
         }}
       />
@@ -98,6 +100,7 @@ export default function Page() {
   const me: User = {
     profile: profileResult!.profile,
     stanceIds: stanceResult?.stanceIds ?? [],
+    strictness,
     ageRange: profileResult!.ageRange,
     heightRange: stanceResult?.heightRange ?? null,
     answers,
@@ -113,6 +116,7 @@ export default function Page() {
       justFinished={justFinished}
       onDismiss={() => setJustFinished(false)}
       onEdit={() => { setEditing(true); setStep('profile'); }}
+      onChangeStrictness={() => { setEditing(true); setStep('strictness'); }}
       onPreviewMatches={() => setStep('matches')}
     />
   );
