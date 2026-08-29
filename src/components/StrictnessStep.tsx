@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Strictness } from '@/lib/types';
-import { STRICTNESS_THRESHOLD } from '@/lib/types';
+import { STRICTNESS_PERCENTILE, STRICTNESS_THRESHOLD } from '@/lib/types';
 import { Button, Shell } from './ui';
 
 const OPTIONS: {
@@ -76,6 +76,7 @@ export function StrictnessStep({
                 }`}
               >
                 궁합 {STRICTNESS_THRESHOLD[o.id]}점 이상
+                <span className="font-normal text-muted"> · {STRICTNESS_PERCENTILE[o.id]}</span>
               </div>
               <p className="text-[13.5px] text-muted leading-relaxed">{o.desc}</p>
             </button>

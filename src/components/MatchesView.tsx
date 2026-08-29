@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { MatchResult, Section, Strictness, User } from '@/lib/types';
-import { calcAge, STRICTNESS_THRESHOLD } from '@/lib/types';
+import { calcAge, STRICTNESS_PERCENTILE, STRICTNESS_THRESHOLD } from '@/lib/types';
 import { findMatches } from '@/lib/matching';
 import { generateUsers } from '@/lib/fake-users';
 import { SECTION_LABELS } from '@/lib/questions';
@@ -67,7 +67,7 @@ export function MatchesView({ me, onBack }: { me: User; onBack: () => void }) {
       <h2 className="text-[20px] font-bold mb-1 mt-2">이번 주 인연</h2>
       <p className="text-[13px] text-muted mb-5 leading-relaxed">
         {STRICTNESS_LABEL[strictness]} 기준으로 <b className="text-foreground">궁합 {threshold}점 이상</b>인
-        분만 보여드립니다.
+        분만 보여드립니다 ({STRICTNESS_PERCENTILE[strictness]}).
       </p>
 
       {passed.length === 0 ? (

@@ -115,11 +115,23 @@ export type Answers = Record<string, AnswerValue>;
 /** 얼마나 깐깐하게 매칭할지 — 설문을 마친 뒤 사용자가 고른다 */
 export type Strictness = 'strict' | 'balanced' | 'relaxed';
 
-/** 각 기준이 요구하는 최소 궁합 점수 */
+/**
+ * 각 기준이 요구하는 최소 궁합 점수.
+ *
+ * 점수 자체가 백분위로 정의돼 있어서(matching.ts 참고) 이 숫자들은
+ * 곧 "상위 몇 %까지 볼 것인가"와 같은 말이다.
+ */
 export const STRICTNESS_THRESHOLD: Record<Strictness, number> = {
   strict: 90,
   balanced: 80,
   relaxed: 65,
+};
+
+/** 각 기준이 대략 상위 몇 %인지 — 화면에 함께 보여준다 */
+export const STRICTNESS_PERCENTILE: Record<Strictness, string> = {
+  strict: '상위 3%',
+  balanced: '상위 10%',
+  relaxed: '상위 25%',
 };
 
 export interface User {

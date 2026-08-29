@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Strictness, User } from '@/lib/types';
-import { calcAge, STRICTNESS_THRESHOLD } from '@/lib/types';
+import { calcAge, STRICTNESS_PERCENTILE, STRICTNESS_THRESHOLD } from '@/lib/types';
 import { deriveFacts, politicsLabel } from '@/lib/facts';
 import { extraTraits, personaOf } from '@/lib/personality';
 import { stanceDisplayName } from '@/lib/stances';
@@ -142,7 +142,7 @@ export function ProfilePage({
           <div className="border-t border-line pt-1">
             <Row label="만날 수 있는 지역" value={p.areas.join(', ')} />
             <Row label="원하는 나이" value={ageText} />
-            <Row label="매칭 기준" value={`궁합 ${threshold}점 이상`} />
+            <Row label="매칭 기준" value={`궁합 ${threshold}점 이상 · ${STRICTNESS_PERCENTILE[strictness]}`} />
             {me.heightRange && (
               <Row label="원하는 키" value={`${me.heightRange.min} ~ ${me.heightRange.max}cm`} />
             )}

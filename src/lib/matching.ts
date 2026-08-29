@@ -184,27 +184,56 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
 /**
  * 원점수를 사용자에게 보여줄 "궁합 점수"로 바꾼다.
  *
- * 눈금을 두 군데서 잡는다.
+ * ── 왜 단순 비례가 아니라 백분위인가 ──────────────────────
  *
- * BASELINE — 아무 상관 없는 두 사람도 원점수는 0.5 근처가 나온다.
- *   5점 척도에서 무작위로 답해도 평균적으로 절반은 겹치기 때문이다.
- *   이 바닥을 0점으로 끌어내린다.
+ * 원점수를 그대로 쓰거나 직선으로 늘리면, 문항을 추가하거나 뺄 때마다
+ * 같은 "80점"이 다른 의미가 된다. 기준을 정해도 매번 다시 잡아야 한다.
  *
- * CEILING — 반대로 원점수 1.0(모든 문항이 완전히 같음)은 현실에서 나오지 않는다.
- *   천장을 1.0으로 두면 아무리 잘 맞는 두 사람도 70점대에 머물러
- *   "궁합 90점" 같은 기준이 영원히 도달 불가능해진다.
- *   그래서 현실적인 상한을 천장으로 잡는다.
+ * 그래서 점수를 **분포상의 위치**로 정의한다.
+ * 80점은 "원점수 얼마"가 아니라 **"가능한 모든 짝 중 상위 10%"**를 뜻한다.
+ * 문항이 바뀌어도 이 의미는 그대로 유지된다.
  *
- * ⚠️ 두 값 모두 실제 사용자 데이터가 쌓이면 반드시 다시 잡아야 한다.
- *    기준은 백분위다 — 90점이 상위 1~2%, 80점이 상위 5% 안쪽,
- *    65점이 상위 15~20%쯤 되도록 맞춘다.
+ * 아래 두 배열이 짝을 이루는 눈금이다.
+ *   RAW_ANCHORS   — 실제 분포에서 관측한 원점수
+ *   SCORE_ANCHORS — 그 지점에 부여할 궁합 점수
+ *
+ * 기준점은 이렇게 잡았다.
+ *   상위 25% → 65점   (느긋하게)
+ *   상위 10% → 80점   (어느 정도, 추천)
+ *   상위  3% → 90점   (깐깐하게)
+ *   중앙값   → 45점
+ *
+ * ⚠️ RAW_ANCHORS는 지금 가짜 사용자 600명(약 5,800쌍)에서 뽑은 값이다.
+ *    실제 사용자가 쌓이면 같은 방법으로 다시 뽑아 이 배열만 갈아끼우면 된다.
+ *    SCORE_ANCHORS(무엇을 몇 점이라 부를지)는 제품 결정이라 그대로 둔다.
  */
-export const RAW_BASELINE = 0.42;
-export const RAW_CEILING = 0.92;
+const RAW_ANCHORS = [
+  0.340, 0.430, 0.451, 0.485, 0.525, 0.553, 0.580,
+  0.770, 0.822, 0.856, 0.876, 0.899, 0.910, 0.940,
+];
+const SCORE_ANCHORS = [
+  0, 8, 13, 25, 45, 55, 65,
+  74, 80, 86, 90, 95, 97, 100,
+];
+/** 각 눈금이 어느 백분위인지 (문서용 — 계산에는 쓰지 않는다) */
+export const ANCHOR_PERCENTILES = [
+  0, 5, 10, 25, 50, 65, 75, 85, 90, 95, 97, 99, 99.5, 100,
+];
 
 export function calibrateScore(raw: number): number {
-  const stretched = (raw - RAW_BASELINE) / (RAW_CEILING - RAW_BASELINE);
-  return Math.round(Math.max(0, Math.min(1, stretched)) * 1000) / 10;
+  if (raw <= RAW_ANCHORS[0]) return 0;
+  const last = RAW_ANCHORS.length - 1;
+  if (raw >= RAW_ANCHORS[last]) return 100;
+
+  for (let i = 0; i < last; i++) {
+    const lo = RAW_ANCHORS[i];
+    const hi = RAW_ANCHORS[i + 1];
+    if (raw > hi) continue;
+    const t = hi === lo ? 0 : (raw - lo) / (hi - lo);
+    const score = SCORE_ANCHORS[i] + t * (SCORE_ANCHORS[i + 1] - SCORE_ANCHORS[i]);
+    return Math.round(score * 10) / 10;
+  }
+  return 100;
 }
 
 /** 두 사람의 궁합을 계산한다. 하드 필터에 걸리면 null */
