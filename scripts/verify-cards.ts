@@ -1,38 +1,30 @@
 /**
- * 매칭 카드에 들어가는 값들이 실제로 만들어지는지 확인한다.
- * 화면(JSX) 대신 카드가 쓰는 계산만 그대로 돌려본다.
+ * 화면에 들어가는 값들이 실제로 만들어지는지 확인한다.
+ * JSX 대신 화면이 쓰는 계산만 그대로 돌려본다.
  */
-import { calcAge, type PriorityFilter, type User } from '../src/lib/types';
+import { calcAge, type User } from '../src/lib/types';
 import { findMatches } from '../src/lib/matching';
 import { generateUsers } from '../src/lib/fake-users';
-import { QUESTIONS, SECTION_LABELS } from '../src/lib/questions';
+import { QUESTIONS, SECTION_LABELS, PAGES } from '../src/lib/questions';
 import { extraTraits, personaOf, PERSONA_TYPES } from '../src/lib/personality';
-import { STANCES } from '../src/lib/stances';
+import { deriveFacts, politicsLabel } from '../src/lib/facts';
+import { STANCE_TAGS, stanceDisplayName } from '../src/lib/stances';
 
 const THIS_YEAR = new Date().getFullYear();
+const line = (s = '') => console.log(s);
+const hr = () => line('─'.repeat(58));
 
+/** 모든 문항에 답한 가상의 나 */
 const me: User = {
   profile: {
     id: 'me', nickname: '현민', birthYear: THIS_YEAR - 31, birthMonth: 3,
-    gender: 'male', seeking: ['female'], areas: ['서울', '경기'],
-    height: 170, job: '미입력', education: '미입력',
-    smoking: 'none', drinking: 'sometimes', pet: 'none',
-    marriage: 'yes', children: 'want', religion: 'none', politics: 3,
+    gender: 'male', seeking: ['female'],
+    sido: '서울', sigungu: '마포구', areas: ['서울', '경기'],
+    heightCm: 178, education: '대졸',
   },
-  priorities: [
-    { key: 'region', allowed: ['서울', '경기'] },
-    { key: 'age', min: 21, max: 41 },
-    ...(['smoke-none', 'drink-light', 'pet-none']
-      .map((id) => STANCES.find((s) => s.id === id)!)
-      .map((s) => s.build({
-        id: 'me', nickname: '현민', birthYear: THIS_YEAR - 31, birthMonth: 3,
-        gender: 'male', seeking: ['female'], areas: ['서울', '경기'],
-        height: 170, job: '미입력', education: '미입력',
-        smoking: 'none', drinking: 'sometimes', pet: 'none',
-        marriage: 'yes', children: 'want', religion: 'none', politics: 3,
-      })) as PriorityFilter[]),
-  ],
-  stanceIds: ['smoke-none', 'drink-light', 'pet-none'],
+  stanceIds: ['smoking', 'marriage', 'height'],
+  ageRange: { min: 26, max: 36 },
+  heightRange: { min: 155, max: 172 },
   answers: Object.fromEntries(
     QUESTIONS.map((q) => [
       q.id,
@@ -41,32 +33,57 @@ const me: User = {
   ),
 };
 
-const line = (s = '') => console.log(s);
-line('─'.repeat(58));
-line('매칭 카드 렌더링 값 검증');
-line('─'.repeat(58));
+hr();
+line('화면 표시값 검증');
+hr();
 
-// 내 프로필 페이지가 쓰는 값
-const myPersona = personaOf(me.answers);
-line(`  내 유형: ${myPersona.emoji} ${myPersona.name} — ${myPersona.tagline}`);
-line(`  추가 특징: ${extraTraits(me.answers).join(' / ')}`);
-line(`  잘 맞는 유형: ${myPersona.goesWellWith.map((c) => PERSONA_TYPES[c]?.name ?? '없음(❌)').join(', ')}`);
-line(`  절대 조건: ${me.stanceIds!.map((id) => STANCES.find((s) => s.id === id)!.short).join(', ')}`);
+line(`  문항 수: ${QUESTIONS.length}개 · ${PAGES.length}쪽 (한 쪽에 최대 ${PAGES[0].length}개)`);
+const allPaged = PAGES.reduce((n, p) => n + p.length, 0);
+line(`  모든 문항이 쪽에 배정됐는가: ${allPaged === QUESTIONS.length ? '✅' : `❌ ${allPaged}`}`);
 
-// 8개 유형이 모두 유효한 상대를 가리키는지
-const broken = Object.values(PERSONA_TYPES).flatMap((t) =>
-  t.goesWellWith.filter((c) => !PERSONA_TYPES[c]).map((c) => `${t.code}→${c}`),
-);
-line(`  유형 8개 상호참조 정상: ${broken.length === 0 ? '✅' : `❌ ${broken.join(', ')}`}`);
+// 설문에서 뽑아낸 사실
+const facts = deriveFacts(me.answers);
+line();
+line('  ── 설문에서 파악한 값 ──');
+line(`   흡연 ${facts.smoking} · 음주 ${facts.drinking} · 종교 ${facts.religion}`);
+line(`   결혼 ${facts.marriage} · 자녀 ${facts.children} · 운동 ${facts.exercise}`);
+line(`   정치 ${facts.politics} (${politicsLabel(facts.politics)})`);
+const factKeys = ['smoking', 'drinking', 'religion', 'marriage', 'children', 'exercise'] as const;
+const missing = factKeys.filter((k) => facts[k] === undefined);
+line(`   모든 사실이 계산됐는가: ${missing.length === 0 ? '✅' : `❌ 빠짐: ${missing.join(', ')}`}`);
+
+// 절대 조건 표시 이름
+line();
+line('  ── 절대 조건 표시 ──');
+for (const id of me.stanceIds) {
+  line(`   ${STANCE_TAGS.find((s) => s.id === id)!.label} → "${stanceDisplayName(id, facts, me.profile)}"`);
+}
+
+// 성향 유형
+const persona = personaOf(me.answers);
+line();
+line('  ── 성향 유형 ──');
+line(`   ${persona.name} — ${persona.tagline}`);
+line(`   ${extraTraits(me.answers).join(' / ')}`);
+line(`   유형 8개 모두 정의됐는가: ${Object.keys(PERSONA_TYPES).length === 8 ? '✅' : '❌'}`);
 
 // 매칭 카드
 const matches = findMatches(me, generateUsers(50), 5);
 line();
-line(`  느슨한 조건에서 후보: ${matches.length}명 ${matches.length > 0 ? '✅' : '❌'}`);
+line(`  ── 매칭 결과: ${matches.length}명 ──`);
 for (const m of matches) {
   const p = m.user.profile;
-  const persona = personaOf(m.user.answers);
-  line(`   ${String(Math.round(m.score)).padStart(3)}%  ${p.nickname} (${calcAge(p.birthYear, p.birthMonth)}세 · ${p.areas.join('·')})`);
-  line(`         ${persona.emoji} ${persona.name} | 잘 맞음: ${SECTION_LABELS[m.bestSection]} / 덜 맞음: ${SECTION_LABELS[m.worstSection]}`);
+  line(`   ${String(Math.round(m.score)).padStart(3)}%  ${p.nickname} (${calcAge(p.birthYear, p.birthMonth)}세 · ${p.sido} ${p.sigungu} · ${p.heightCm}cm)`);
+  line(`         ${personaOf(m.user.answers).name} | 잘 맞음: ${SECTION_LABELS[m.bestSection]} / 덜 맞음: ${SECTION_LABELS[m.worstSection]}`);
 }
-line('─'.repeat(58));
+
+// 절대 조건이 실제로 지켜졌는지
+const kept = matches.every((m) => {
+  const f = deriveFacts(m.user.answers);
+  const h = m.user.profile.heightCm;
+  return f.smoking === facts.smoking && f.marriage === facts.marriage
+    && h >= me.heightRange!.min && h <= me.heightRange!.max;
+});
+line();
+line(`  절대 조건(흡연·결혼관·키)이 모두 지켜졌는가: ${matches.length === 0 ? '(후보 없음)' : kept ? '✅' : '❌'}`);
+hr();

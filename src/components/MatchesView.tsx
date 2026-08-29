@@ -19,11 +19,9 @@ function MatchCard({ m, rank }: { m: MatchResult; rank: number }) {
           <div className="text-[11px] text-muted mb-1">{rank}번째 인연</div>
           <div className="text-[17px] font-bold truncate">{p.nickname}</div>
           <div className="text-[13px] text-muted mt-0.5">
-            {calcAge(p.birthYear, p.birthMonth)}세 · {p.areas.join('·')}
+            {calcAge(p.birthYear, p.birthMonth)}세 · {p.sido} {p.sigungu} · {p.heightCm}cm
           </div>
-          <div className="text-[13px] mt-2">
-            {persona.emoji} {persona.name}
-          </div>
+          <div className="text-[13px] mt-2 font-medium">{persona.name}</div>
         </div>
         <div className="text-right shrink-0">
           <div className="text-[28px] font-bold text-accent leading-none">

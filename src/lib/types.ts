@@ -1,24 +1,38 @@
 /**
  * 앱 전체에서 쓰는 데이터 모양(타입) 정의.
+ *
+ * 핵심 원칙 (사용자 결정):
+ * 기본 정보에서는 **객관적인 사실만** 받는다. (나이·키·사는 곳·성별·찾는 성별)
+ * 흡연, 음주, 종교, 결혼 의향, 자녀 계획, 정치 성향 같은 것은
+ * 본인에게 직접 묻지 않고 **설문 응답으로 우리가 판단한다.**
  */
 
 export type Gender = 'male' | 'female' | 'other';
 
-export type PriorityKey =
-  | 'age' | 'region' | 'smoking' | 'drinking' | 'religion' | 'politics'
-  | 'marriage' | 'children' | 'job' | 'height' | 'education' | 'pet';
+/** 설문에서 뽑아내는 속성들 — 하드 필터가 이 값을 본다 */
+export type FactKey =
+  | 'smoking' | 'drinking' | 'religion' | 'marriage' | 'children' | 'exercise';
 
-/** 전자담배는 흡연에 포함시켰다 (사용자 피드백) */
 export type Smoking = 'none' | 'sometimes' | 'yes';
 export type Drinking = 'none' | 'sometimes' | 'often';
 export type Marriage = 'yes' | 'no' | 'undecided';
 export type Children = 'want' | 'not' | 'undecided';
-export type Pet = 'has' | 'none' | 'allergic';
 export type Religion = 'none' | 'protestant' | 'catholic' | 'buddhist' | 'other';
+export type Exercise = 'often' | 'sometimes' | 'rarely';
 
-/** 정치 성향: 1(매우 진보) ~ 5(매우 보수), null = 잘 모름 */
-export type Politics = number | null;
+/** 설문에서 파생된 속성 묶음 */
+export interface Facts {
+  smoking?: Smoking;
+  drinking?: Drinking;
+  religion?: Religion;
+  marriage?: Marriage;
+  children?: Children;
+  exercise?: Exercise;
+  /** 정치 성향 1(진보) ~ 5(보수). 이슈 문항들의 평균으로 계산. 답이 없으면 null */
+  politics: number | null;
+}
 
+/** 기본 정보 — 객관적 사실만 */
 export interface Profile {
   id: string;
   nickname: string;
@@ -27,22 +41,18 @@ export interface Profile {
   birthMonth: number;
   gender: Gender;
   seeking: Gender[];
+  /** 사는 곳 (시/도 + 시/군/구) */
+  sido: string;
+  sigungu: string;
   /**
-   * 만날 수 있는 지역 (복수).
-   * "사는 곳"이 아니라 "활동 범위"다. 경기 거주자가 서울에서 만날 수 있으면
-   * 둘 다 고르면 된다. 매칭은 겹치는 지역이 하나라도 있으면 통과.
+   * 만날 수 있는 지역 (시/도 단위, 복수).
+   * "사는 곳"과 별개다. 경기 살아도 서울에서 만날 수 있으면 둘 다 고른다.
+   * 겹치는 지역이 하나라도 있으면 매칭 가능.
    */
   areas: string[];
-  height: number;
-  job: string;
-  education: string;
-  smoking: Smoking;
-  drinking: Drinking;
-  pet: Pet;
-  marriage: Marriage;
-  children: Children;
-  religion: Religion;
-  politics: Politics;
+  heightCm: number;
+  /** 선택 입력 — 안 넣어도 된다 */
+  education?: string;
 }
 
 /** 출생 연월로 만 나이 계산 */
@@ -62,8 +72,7 @@ export type PriorityFilter =
   | { key: 'religion'; allowed: Religion[] }
   | { key: 'marriage'; allowed: Marriage[] }
   | { key: 'children'; allowed: Children[] }
-  | { key: 'pet'; allowed: Pet[] }
-  | { key: 'job'; allowed: string[] }
+  | { key: 'exercise'; allowed: Exercise[] }
   | { key: 'education'; allowed: string[] };
 
 export type Section = 'values' | 'relationship' | 'lifestyle' | 'personality' | 'taste';
@@ -80,7 +89,16 @@ export interface Question {
   options?: string[];
   reverse?: boolean;
   bigFive?: BigFiveAxis;
-  priorityKey?: PriorityKey;
+  /**
+   * 이 문항이 어떤 사실을 알려주는가.
+   * options와 같은 순서로 factValues를 두면 응답이 그 값으로 번역된다.
+   */
+  fact?: FactKey;
+  factValues?: string[];
+  /** 정치 성향 계산에 쓰이는 문항인가. 1(진보 동의) ~ 5(보수 동의) 방향 */
+  politicsAxis?: boolean;
+  /** 이 문항이 어떤 절대 조건과 연결되는가 (선택 시 가중치 상승) */
+  stanceGroup?: string;
 }
 
 export type AnswerValue = number | string | string[];
@@ -88,10 +106,12 @@ export type Answers = Record<string, AnswerValue>;
 
 export interface User {
   profile: Profile;
-  /** 하드 필터 목록. 지역·나이는 항상 들어가고, 여기에 선언형 조건 3개가 더해진다 */
-  priorities: PriorityFilter[];
-  /** 사용자가 고른 선언형 조건의 id 목록 (화면 표시용) */
-  stanceIds?: string[];
+  /** 사용자가 고른 절대 조건 태그 id (0~3개) */
+  stanceIds: string[];
+  /** 나이 범위. null이면 상관없음 */
+  ageRange: { min: number; max: number } | null;
+  /** 키 범위 (절대 조건으로 키를 골랐을 때만) */
+  heightRange?: { min: number; max: number } | null;
   answers: Answers;
 }
 

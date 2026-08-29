@@ -1,35 +1,32 @@
-/** 코드 값 ↔ 화면에 보여줄 한국어 이름 대응표 */
-import type { Children, Drinking, Gender, Marriage, Pet, Religion, Smoking } from './types';
-
-/** 활동 가능 지역 — "사는 곳"이 아니라 "만날 수 있는 곳" */
-export const AREAS = [
-  '서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원',
-  '충북', '충남', '전북', '전남', '경북', '경남', '제주',
-];
+/** 코드 값 ↔ 화면에 보여줄 한국어 이름 */
+import type {
+  Children, Drinking, Exercise, Gender, Marriage, Religion, Smoking,
+} from './types';
 
 export const GENDER: Record<Gender, string> = {
   male: '남성', female: '여성', other: '기타',
 };
+
+export const EDUCATIONS = ['고졸', '전문대졸', '대졸', '대학원졸'];
+
+// 아래 값들은 기본 정보에서 직접 묻지 않는다.
+// 설문 응답에서 뽑아낸 뒤 프로필 화면에 보여줄 때만 쓴다.
 export const SMOKING: Record<Smoking, string> = {
   none: '피우지 않음', sometimes: '가끔', yes: '피움',
 };
 export const DRINKING: Record<Drinking, string> = {
-  none: '안 마심', sometimes: '가끔', often: '자주',
+  none: '거의 안 마심', sometimes: '가끔', often: '자주',
 };
 export const MARRIAGE: Record<Marriage, string> = {
-  yes: '있음', no: '비혼주의', undecided: '아직 모름',
+  yes: '하고 싶음', no: '생각 없음', undecided: '아직 모름',
 };
 export const CHILDREN: Record<Children, string> = {
-  want: '원함', not: '원치 않음', undecided: '아직 모름',
-};
-export const PET: Record<Pet, string> = {
-  has: '키움', none: '안 키움', allergic: '알레르기 있음',
+  want: '갖고 싶음', not: '갖고 싶지 않음', undecided: '아직 모름',
 };
 export const RELIGION: Record<Religion, string> = {
   none: '무교', protestant: '개신교', catholic: '천주교',
-  buddhist: '불교', other: '기타',
+  buddhist: '불교', other: '그 외',
 };
-/** 0은 "잘 모름" — 정치 성향은 모르는 사람도 많다 */
-export const POLITICS: Record<number, string> = {
-  1: '매우 진보', 2: '진보', 3: '중도', 4: '보수', 5: '매우 보수', 0: '잘 모름',
+export const EXERCISE: Record<Exercise, string> = {
+  often: '주 3회 이상', sometimes: '가끔', rarely: '거의 안 함',
 };

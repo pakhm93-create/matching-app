@@ -1,28 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import type { Answers, PriorityFilter, Profile, User } from '@/lib/types';
+import type { Answers, User } from '@/lib/types';
 import { QUESTIONS } from '@/lib/questions';
-import { ProfileStep } from '@/components/ProfileStep';
-import { StanceStep } from '@/components/StanceStep';
+import { ProfileStep, type ProfileResult } from '@/components/ProfileStep';
+import { StanceStep, type StanceResult } from '@/components/StanceStep';
 import { SurveyStep } from '@/components/SurveyStep';
-import { SearchingStep } from '@/components/SearchingStep';
 import { ProfilePage } from '@/components/ProfilePage';
 import { MatchesView } from '@/components/MatchesView';
 import { Button, Shell } from '@/components/ui';
 
-type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'searching' | 'me' | 'matches';
+type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'me' | 'matches';
 
 export default function Page() {
   const [step, setStep] = useState<Step>('intro');
-  const [profile, setProfile] = useState<Profile>();
-  /** 지역·나이처럼 항상 적용되는 기본 조건 */
-  const [basePriorities, setBasePriorities] = useState<PriorityFilter[]>([]);
-  /** 사용자가 고른 절대 조건 3가지 */
-  const [stanceFilters, setStanceFilters] = useState<PriorityFilter[]>([]);
-  const [stanceIds, setStanceIds] = useState<string[]>([]);
+  const [profileResult, setProfileResult] = useState<ProfileResult>();
+  const [stanceResult, setStanceResult] = useState<StanceResult>();
   const [answers, setAnswers] = useState<Answers>({});
-  /** 프로필 수정 중인가 — 수정이면 설문을 다시 하지 않고 프로필로 돌아간다 */
+  /** 설문을 방금 마쳤는가 — 프로필 화면에서 완료 팝업을 띄우기 위한 것 */
+  const [justFinished, setJustFinished] = useState(false);
+  /** 수정 중이면 설문을 다시 시키지 않고 프로필로 돌려보낸다 */
   const [editing, setEditing] = useState(false);
 
   if (step === 'intro') {
@@ -63,11 +60,8 @@ export default function Page() {
     return (
       <ProfileStep
         progress={0.08}
-        onNext={(p, base) => {
-          setProfile(p);
-          setBasePriorities(base);
-          setStep('stance');
-        }}
+        initial={profileResult}
+        onNext={(r) => { setProfileResult(r); setStep('stance'); }}
       />
     );
   }
@@ -75,18 +69,12 @@ export default function Page() {
   if (step === 'stance') {
     return (
       <StanceStep
-        progress={0.25}
-        me={profile!}
-        onNext={(filters, ids) => {
-          setStanceFilters(filters);
-          setStanceIds(ids);
-          // 수정 중이면 설문을 다시 시킬 필요가 없다
-          if (editing) {
-            setEditing(false);
-            setStep('me');
-          } else {
-            setStep('survey');
-          }
+        progress={0.22}
+        initial={stanceResult}
+        onNext={(r) => {
+          setStanceResult(r);
+          if (editing) { setEditing(false); setStep('me'); }
+          else setStep('survey');
         }}
       />
     );
@@ -95,24 +83,23 @@ export default function Page() {
   if (step === 'survey') {
     return (
       <SurveyStep
-        baseProgress={0.35}
-        span={0.6}
+        baseProgress={0.3}
+        span={0.7}
+        initial={answers}
         onDone={(a) => {
           setAnswers(a);
-          setStep('searching');
+          setJustFinished(true);
+          setStep('me');
         }}
       />
     );
   }
 
-  if (step === 'searching') {
-    return <SearchingStep onDone={() => setStep('me')} />;
-  }
-
   const me: User = {
-    profile: profile!,
-    priorities: [...basePriorities, ...stanceFilters],
-    stanceIds,
+    profile: profileResult!.profile,
+    stanceIds: stanceResult?.stanceIds ?? [],
+    ageRange: profileResult!.ageRange,
+    heightRange: stanceResult?.heightRange ?? null,
     answers,
   };
 
@@ -123,10 +110,9 @@ export default function Page() {
   return (
     <ProfilePage
       me={me}
-      onEdit={() => {
-        setEditing(true);
-        setStep('profile');
-      }}
+      justFinished={justFinished}
+      onDismiss={() => setJustFinished(false)}
+      onEdit={() => { setEditing(true); setStep('profile'); }}
       onPreviewMatches={() => setStep('matches')}
     />
   );

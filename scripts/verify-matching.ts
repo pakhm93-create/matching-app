@@ -8,11 +8,11 @@
  *  3) 무작위 50명의 점수 분포가 한쪽에 쏠려 있지 않은가
  *  4) 하드 필터가 실제로 후보를 걸러내는가
  */
-import { computeMatch, findMatches, passesHardFilter } from '../src/lib/matching';
+import { calcAge, type Section, type User } from '../src/lib/types';
+import { computeMatch, findMatches, passesHardFilter, prepare } from '../src/lib/matching';
 import { generatePlantedUsers, generateUsers } from '../src/lib/fake-users';
 import { SECTION_LABELS } from '../src/lib/questions';
-import type { Section, User } from '../src/lib/types';
-import { calcAge } from '../src/lib/types';
+import { deriveFacts, politicsLabel } from '../src/lib/facts';
 
 const line = (s = '') => console.log(s);
 const hr = () => line('─'.repeat(58));
@@ -24,9 +24,8 @@ hr();
 line('1. 극단 케이스 검증');
 hr();
 
-const twinMatch = computeMatch(twinA, twinB);
-const oppMatch = computeMatch(oppA, oppB);
-
+const twinMatch = computeMatch(prepare(twinA), prepare(twinB));
+const oppMatch = computeMatch(prepare(oppA), prepare(oppB));
 const twinScore = twinMatch?.score ?? -1;
 const oppScore = oppMatch?.score ?? -1;
 
@@ -41,7 +40,9 @@ const results = findMatches(me, pool);
 hr();
 line('2. 무작위 50명 매칭 결과');
 hr();
-line(`  나: ${me.profile.nickname} (${calcAge(me.profile.birthYear, me.profile.birthMonth)}세, ${me.profile.areas.join("·")}, ${me.profile.gender === 'male' ? '남' : '여'})`);
+const myFacts = deriveFacts(me.answers);
+line(`  나: ${me.profile.nickname} (${calcAge(me.profile.birthYear, me.profile.birthMonth)}세, ${me.profile.sido} ${me.profile.sigungu}, ${me.profile.gender === 'male' ? '남' : '여'})`);
+line(`  설문에서 파악한 나: 흡연 ${myFacts.smoking} · 음주 ${myFacts.drinking} · ${politicsLabel(myFacts.politics)}`);
 line(`  하드 필터 통과 후보: ${results.length}명 / 전체 49명`);
 
 if (results.length > 0) {
@@ -53,19 +54,15 @@ if (results.length > 0) {
   line('  ── 상위 5명 ──');
   for (const r of results.slice(0, 5)) {
     const p = r.user.profile;
-    const best = SECTION_LABELS[r.bestSection as Section];
-    const worst = SECTION_LABELS[r.worstSection as Section];
-    line(`   ${String(r.score).padStart(5)}점  ${p.nickname} (${calcAge(p.birthYear, p.birthMonth)}세, ${p.areas.join("·")})`);
-    line(`          잘 맞음: ${best}  /  덜 맞음: ${worst}`);
+    line(`   ${String(r.score).padStart(5)}점  ${p.nickname} (${calcAge(p.birthYear, p.birthMonth)}세, ${p.sido} ${p.sigungu})`);
+    line(`          잘 맞음: ${SECTION_LABELS[r.bestSection as Section]}  /  덜 맞음: ${SECTION_LABELS[r.worstSection as Section]}`);
   }
 
-  // 점수 분포 히스토그램
   line();
   line('  ── 점수 분포 ──');
   const buckets = new Array(10).fill(0);
   for (const s of scores) buckets[Math.min(9, Math.floor(s / 10))]++;
   buckets.forEach((n, i) => {
-    if (i < 2) return; // 0~20점 구간은 거의 안 나오므로 생략
     line(`   ${String(i * 10).padStart(3)}~${String(i * 10 + 9).padStart(3)}점 | ${'█'.repeat(n)} ${n}`);
   });
 }
@@ -75,32 +72,51 @@ hr();
 line('3. 하드 필터 검증');
 hr();
 
+// 절대 조건 3개를 건 나 — 흡연·음주·결혼관이 나와 같아야 한다
 const strict: User = {
   ...me,
-  priorities: [
-    { key: 'smoking', allowed: ['none'] },   // 비흡연자만
-    { key: 'region', allowed: ['서울'] },     // 서울에서 만날 수 있는 사람만
-    { key: 'age', min: 28, max: 33 },        // 28~33세만
-  ],
+  stanceIds: ['smoking', 'drinking', 'marriage'],
+  ageRange: { min: 25, max: 40 },
 };
 const strictResults = findMatches(strict, pool);
-line(`  느슨한 조건: ${results.length}명`);
-line(`  빡빡한 조건(비흡연·서울·28~33세): ${strictResults.length}명`);
-line(`  → 필터가 후보를 줄이는가: ${strictResults.length < results.length ? '✅' : '❌'}`);
+line(`  조건 없음: ${results.length}명`);
+line(`  절대 조건 3개(흡연·음주·결혼관): ${strictResults.length}명`);
+line(`  → 필터가 후보를 줄이는가: ${strictResults.length <= results.length ? '✅' : '❌'}`);
 
-// 필터 통과자가 정말 조건을 만족하는지 확인
+// 통과자가 정말 나와 같은 값을 갖는지
 const allValid = strictResults.every((r) => {
+  const f = deriveFacts(r.user.answers);
   const p = r.user.profile;
   const age = calcAge(p.birthYear, p.birthMonth);
-  return p.smoking === 'none' && p.areas.includes('서울') && age >= 28 && age <= 33;
+  return f.smoking === myFacts.smoking && f.drinking === myFacts.drinking
+    && f.marriage === myFacts.marriage && age >= 25 && age <= 40;
 });
 line(`  → 통과한 후보가 조건을 실제로 만족하는가: ${allValid ? '✅' : '❌'}`);
 
 // 양방향 확인: 상대의 조건에도 내가 맞아야 한다
-const picky: User = {
+const picky: User = { ...pool[1], stanceIds: [], ageRange: { min: 99, max: 100 } };
+line(`  → 상대가 불가능한 조건을 걸면 매칭 제외되는가: ${!passesHardFilter(prepare(me), prepare(picky)) ? '✅' : '❌'}`);
+
+// 지역이 겹치지 않으면 제외되는가
+const farAway: User = {
   ...pool[1],
-  priorities: [{ key: 'age', min: 99, max: 100 }], // 아무도 만족 못 하는 조건
+  profile: { ...pool[1].profile, areas: ['제주'] },
+  stanceIds: [], ageRange: null,
 };
-line(`  → 상대가 불가능한 조건을 걸면 매칭 제외되는가: ${!passesHardFilter(me, picky) ? '✅' : '❌'}`);
+const meSeoul: User = { ...me, profile: { ...me.profile, areas: ['서울'] }, stanceIds: [], ageRange: null };
+line(`  → 활동 지역이 하나도 안 겹치면 제외되는가: ${!passesHardFilter(prepare(meSeoul), prepare(farAway)) ? '✅' : '❌'}`);
+
+// 겹치면 통과하는가 (경기 사는 사람이 서울에서도 만날 수 있는 경우)
+const overlapping: User = {
+  ...pool[1],
+  profile: { ...pool[1].profile, gender: 'female', seeking: ['male'], areas: ['경기', '서울'] },
+  stanceIds: [], ageRange: null,
+};
+const meMale: User = {
+  ...me,
+  profile: { ...me.profile, gender: 'male', seeking: ['female'], areas: ['서울'] },
+  stanceIds: [], ageRange: null,
+};
+line(`  → 활동 지역이 하나라도 겹치면 통과하는가: ${passesHardFilter(prepare(meMale), prepare(overlapping)) ? '✅' : '❌'}`);
 
 hr();

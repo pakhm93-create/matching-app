@@ -44,3 +44,48 @@ body {
 
 /* 모바일에서 입력창 포커스 시 화면이 확대되는 것 방지 */
 input, select, textarea, button { font-size: 16px; }
+
+/* ── 드래그 슬라이더 (나이·키 범위) ────────────────── */
+.rangeThumb {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  width: 100%;
+  height: 40px;
+  background: transparent;
+  pointer-events: none;   /* 트랙은 통과시키고 */
+  margin: 0;
+}
+.rangeThumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;   /* 손잡이만 잡히게 */
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+.rangeThumb::-webkit-slider-thumb:active { cursor: grabbing; }
+.rangeThumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--surface);
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ── 휠 선택기 ─────────────────────────────────────── */
+.wheel {
+  height: 132px;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.wheel::-webkit-scrollbar { display: none; }
+.wheelItem { height: 44px; scroll-snap-align: center; }

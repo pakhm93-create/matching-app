@@ -1,63 +1,99 @@
 /**
- * "절대 양보할 수 없는 것" 선택지.
+ * 절대 양보할 수 없는 조건 (최대 3개, 0개도 가능).
  *
- * 예전에는 "흡연" 같은 항목 이름을 고르게 한 뒤, 다음 화면에서 다시
- * "어디까지 괜찮으세요?"를 물었다. 같은 질문을 두 번 하는 느낌이라 없앴다.
- * 지금은 처음부터 완성된 문장을 고르게 한다 — 한 번에 끝난다.
+ * 화면에는 **짧은 단어만** 보여준다. 문장으로 길게 쓰면 한눈에 안 들어온다.
+ * "흡연"을 골랐다는 것 자체가 "이 사람에게 흡연이 가장 중요하다"는 뜻이다.
+ *
+ * 규칙은 하나로 통일했다 — **고른 항목은 상대가 나와 같아야 한다.**
+ * 비흡연자가 '흡연'을 고르면 상대도 비흡연, 비혼주의자가 '결혼관'을 고르면 상대도 비혼.
+ * 그래서 선택 화면에서는 값을 따로 물어볼 필요가 없다.
+ * (내 값은 설문에서 알아내므로, 프로필에는 '비혼주의'처럼 구체적으로 표시한다)
  */
-import type { PriorityFilter, Profile } from './types';
+import type { Facts, PriorityFilter, Profile } from './types';
 
-export interface Stance {
+export interface StanceTag {
   id: string;
-  /** 카드에 보일 문장 */
+  /** 화면에 보이는 짧은 이름 */
   label: string;
-  /** 프로필 요약에 보일 짧은 이름 */
-  short: string;
-  /** 같은 그룹에서는 하나만 고를 수 있다 (결혼 필수 ↔ 비혼주의 충돌 방지) */
-  group: string;
-  /** 매칭 엔진이 쓰는 필터로 변환. me는 "나와 같은" 류의 조건에 필요 */
-  build: (me: Profile) => PriorityFilter;
+  /** 눌렀을 때 무슨 뜻인지 한 줄 설명 */
+  hint: string;
+  /** 키처럼 범위를 따로 받아야 하는 항목 */
+  needsRange?: boolean;
+  /** 내 정보를 바탕으로 상대에게 걸 조건을 만든다. 만들 수 없으면 null */
+  build: (
+    facts: Facts,
+    profile: Profile,
+    range?: { min: number; max: number } | null,
+  ) => PriorityFilter | null;
 }
 
-export const STANCES: Stance[] = [
-  { id: 'smoke-none', group: '담배', short: '비흡연', label: '담배를 피우지 않는 분만 만날래요',
-    build: () => ({ key: 'smoking', allowed: ['none'] }) },
+export const MAX_STANCES = 3;
 
-  { id: 'drink-none', group: '술', short: '술 안 마심', label: '술을 마시지 않는 분만 만날래요',
-    build: () => ({ key: 'drinking', allowed: ['none'] }) },
-  { id: 'drink-light', group: '술', short: '과음 안 함', label: '술을 자주 마시지 않는 분이면 좋겠어요',
-    build: () => ({ key: 'drinking', allowed: ['none', 'sometimes'] }) },
+export const STANCE_TAGS: StanceTag[] = [
+  { id: 'smoking', label: '흡연', hint: '나와 같은 흡연 습관인 분만',
+    build: (f) => (f.smoking ? { key: 'smoking', allowed: [f.smoking] } : null) },
 
-  { id: 'marry-yes', group: '결혼', short: '결혼 생각 있음', label: '결혼 생각이 있는 분만 만날래요',
-    build: () => ({ key: 'marriage', allowed: ['yes'] }) },
-  { id: 'marry-no', group: '결혼', short: '비혼', label: '비혼주의인 분만 만날래요',
-    build: () => ({ key: 'marriage', allowed: ['no'] }) },
+  { id: 'drinking', label: '음주', hint: '나와 같은 음주 습관인 분만',
+    build: (f) => (f.drinking ? { key: 'drinking', allowed: [f.drinking] } : null) },
 
-  { id: 'child-want', group: '자녀', short: '아이 원함', label: '아이를 원하는 분만 만날래요',
-    build: () => ({ key: 'children', allowed: ['want'] }) },
-  { id: 'child-not', group: '자녀', short: '아이 원치 않음', label: '아이를 원하지 않는 분만 만날래요',
-    build: () => ({ key: 'children', allowed: ['not'] }) },
+  { id: 'religion', label: '종교', hint: '나와 같은 종교인 분만',
+    build: (f) => (f.religion ? { key: 'religion', allowed: [f.religion] } : null) },
 
-  { id: 'religion-same', group: '종교', short: '같은 종교', label: '저와 같은 종교인 분만 만날래요',
-    build: (me) => ({ key: 'religion', allowed: [me.religion] }) },
-  { id: 'religion-none', group: '종교', short: '무교', label: '종교가 없는 분만 만날래요',
-    build: () => ({ key: 'religion', allowed: ['none'] }) },
+  { id: 'marriage', label: '결혼관', hint: '결혼에 대한 생각이 같은 분만',
+    build: (f) => (f.marriage ? { key: 'marriage', allowed: [f.marriage] } : null) },
 
-  { id: 'politics-close', group: '정치', short: '비슷한 정치 성향',
-    label: '정치 성향이 저와 비슷한 분만 만날래요',
-    build: (me) => {
-      // 잘 모름(null)이면 조건을 걸어도 의미가 없으므로 전 범위 허용
-      if (me.politics === null) return { key: 'politics', min: 1, max: 5 };
-      return { key: 'politics', min: me.politics - 1, max: me.politics + 1 };
-    } },
+  { id: 'children', label: '자녀 계획', hint: '아이에 대한 생각이 같은 분만',
+    build: (f) => (f.children ? { key: 'children', allowed: [f.children] } : null) },
 
-  { id: 'pet-none', group: '반려동물', short: '반려동물 없는 분',
-    label: '반려동물을 키우지 않는 분만 만날래요',
-    build: () => ({ key: 'pet', allowed: ['none', 'allergic'] }) },
-  { id: 'pet-ok', group: '반려동물', short: '반려동물 좋아함',
-    label: '반려동물을 키우는 분이면 좋겠어요',
-    build: () => ({ key: 'pet', allowed: ['has'] }) },
+  { id: 'politics', label: '정치 성향', hint: '정치 성향이 비슷한 분만',
+    build: (f) =>
+      f.politics === null
+        ? null
+        : { key: 'politics', min: f.politics - 1, max: f.politics + 1 } },
+
+  { id: 'exercise', label: '운동', hint: '운동 습관이 비슷한 분만',
+    build: (f) => (f.exercise ? { key: 'exercise', allowed: [f.exercise] } : null) },
+
+  { id: 'height', label: '키', hint: '원하는 키 범위를 정해주세요', needsRange: true,
+    build: (_f, _p, range) =>
+      range ? { key: 'height', min: range.min, max: range.max } : null },
+
+  { id: 'education', label: '학력', hint: '나와 같은 학력인 분만',
+    build: (_f, p) => (p.education ? { key: 'education', allowed: [p.education] } : null) },
 ];
 
-export const STANCE_BY_ID = new Map(STANCES.map((s) => [s.id, s]));
-export const MAX_STANCES = 3;
+export const STANCE_BY_ID = new Map(STANCE_TAGS.map((s) => [s.id, s]));
+
+/** 내 프로필에 보여줄 구체적인 이름 (예: '결혼관' → '비혼주의') */
+export function stanceDisplayName(id: string, f: Facts, p: Profile): string {
+  switch (id) {
+    case 'smoking':
+      return f.smoking === 'none' ? '비흡연' : f.smoking === 'sometimes' ? '가끔 흡연' : '흡연';
+    case 'drinking':
+      return f.drinking === 'none' ? '금주' : f.drinking === 'sometimes' ? '가끔 음주' : '자주 음주';
+    case 'religion':
+      return f.religion === 'none' ? '무교' : '같은 종교';
+    case 'marriage':
+      return f.marriage === 'no' ? '비혼주의' : f.marriage === 'yes' ? '결혼 희망' : '결혼관';
+    case 'children':
+      return f.children === 'not' ? '딩크' : f.children === 'want' ? '아이 희망' : '자녀 계획';
+    case 'politics': return '정치 성향';
+    case 'exercise':
+      return f.exercise === 'often' ? '운동 자주' : f.exercise === 'rarely' ? '운동 안 함' : '운동';
+    case 'height': return '키';
+    case 'education': return p.education ?? '학력';
+    default: return id;
+  }
+}
+
+/** 사용자가 고른 태그들을 실제 매칭 조건으로 변환 */
+export function buildStanceFilters(
+  stanceIds: string[],
+  facts: Facts,
+  profile: Profile,
+  heightRange?: { min: number; max: number } | null,
+): PriorityFilter[] {
+  return stanceIds
+    .map((id) => STANCE_BY_ID.get(id)?.build(facts, profile, heightRange) ?? null)
+    .filter((f): f is PriorityFilter => f !== null);
+}
