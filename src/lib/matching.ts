@@ -10,6 +10,7 @@
 import type {
   AnswerValue, MatchResult, PriorityFilter, Profile, Question, Section, User,
 } from './types';
+import { calcAge } from './types';
 import { PRIORITY_BOOST, QUESTIONS, SECTION_WEIGHTS } from './questions';
 
 // ────────────────────────────────────────────
@@ -19,10 +20,17 @@ import { PRIORITY_BOOST, QUESTIONS, SECTION_WEIGHTS } from './questions';
 /** 프로필 하나가 조건 하나를 만족하는가 */
 function profileMatchesFilter(p: Profile, f: PriorityFilter): boolean {
   switch (f.key) {
-    case 'age':      return p.age >= f.min && p.age <= f.max;
+    case 'age': {
+      const age = calcAge(p.birthYear, p.birthMonth);
+      return age >= f.min && age <= f.max;
+    }
     case 'height':   return p.height >= f.min && p.height <= f.max;
-    case 'politics': return p.politics >= f.min && p.politics <= f.max;
-    case 'region':   return f.allowed.includes(p.region);
+    // 정치 성향을 "잘 모름"으로 둔 사람은 걸러내지 않는다.
+    // 모른다는 것과 반대라는 것은 다르다.
+    case 'politics': return p.politics === null || (p.politics >= f.min && p.politics <= f.max);
+    // 지역은 "사는 곳"이 아니라 "만날 수 있는 곳"이라 겹치기만 하면 통과다.
+    // 경기 사는 사람이 서울에서도 만날 수 있으면 서울 사람과 매칭된다.
+    case 'region':   return p.areas.some((a) => f.allowed.includes(a));
     case 'smoking':  return f.allowed.includes(p.smoking);
     case 'drinking': return f.allowed.includes(p.drinking);
     case 'religion': return f.allowed.includes(p.religion);
@@ -31,7 +39,6 @@ function profileMatchesFilter(p: Profile, f: PriorityFilter): boolean {
     case 'pet':      return f.allowed.includes(p.pet);
     case 'job':      return f.allowed.includes(p.job);
     case 'education':return f.allowed.includes(p.education);
-    case 'tattoo':   return f.allowed.includes(p.tattoo);
   }
 }
 

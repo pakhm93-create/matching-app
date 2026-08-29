@@ -12,6 +12,7 @@ import { computeMatch, findMatches, passesHardFilter } from '../src/lib/matching
 import { generatePlantedUsers, generateUsers } from '../src/lib/fake-users';
 import { SECTION_LABELS } from '../src/lib/questions';
 import type { Section, User } from '../src/lib/types';
+import { calcAge } from '../src/lib/types';
 
 const line = (s = '') => console.log(s);
 const hr = () => line('─'.repeat(58));
@@ -40,7 +41,7 @@ const results = findMatches(me, pool);
 hr();
 line('2. 무작위 50명 매칭 결과');
 hr();
-line(`  나: ${me.profile.nickname} (${me.profile.age}세, ${me.profile.region}, ${me.profile.gender === 'male' ? '남' : '여'})`);
+line(`  나: ${me.profile.nickname} (${calcAge(me.profile.birthYear, me.profile.birthMonth)}세, ${me.profile.areas.join("·")}, ${me.profile.gender === 'male' ? '남' : '여'})`);
 line(`  하드 필터 통과 후보: ${results.length}명 / 전체 49명`);
 
 if (results.length > 0) {
@@ -54,7 +55,7 @@ if (results.length > 0) {
     const p = r.user.profile;
     const best = SECTION_LABELS[r.bestSection as Section];
     const worst = SECTION_LABELS[r.worstSection as Section];
-    line(`   ${String(r.score).padStart(5)}점  ${p.nickname} (${p.age}세, ${p.region})`);
+    line(`   ${String(r.score).padStart(5)}점  ${p.nickname} (${calcAge(p.birthYear, p.birthMonth)}세, ${p.areas.join("·")})`);
     line(`          잘 맞음: ${best}  /  덜 맞음: ${worst}`);
   }
 
@@ -78,7 +79,7 @@ const strict: User = {
   ...me,
   priorities: [
     { key: 'smoking', allowed: ['none'] },   // 비흡연자만
-    { key: 'region', allowed: ['서울'] },     // 서울만
+    { key: 'region', allowed: ['서울'] },     // 서울에서 만날 수 있는 사람만
     { key: 'age', min: 28, max: 33 },        // 28~33세만
   ],
 };
@@ -90,7 +91,8 @@ line(`  → 필터가 후보를 줄이는가: ${strictResults.length < results.l
 // 필터 통과자가 정말 조건을 만족하는지 확인
 const allValid = strictResults.every((r) => {
   const p = r.user.profile;
-  return p.smoking === 'none' && p.region === '서울' && p.age >= 28 && p.age <= 33;
+  const age = calcAge(p.birthYear, p.birthMonth);
+  return p.smoking === 'none' && p.areas.includes('서울') && age >= 28 && age <= 33;
 });
 line(`  → 통과한 후보가 조건을 실제로 만족하는가: ${allValid ? '✅' : '❌'}`);
 

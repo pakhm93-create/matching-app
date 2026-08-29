@@ -4,25 +4,26 @@ import { useState } from 'react';
 import type { Answers, PriorityFilter, Profile, User } from '@/lib/types';
 import { QUESTIONS } from '@/lib/questions';
 import { ProfileStep } from '@/components/ProfileStep';
-import { PriorityStep } from '@/components/PriorityStep';
+import { StanceStep } from '@/components/StanceStep';
 import { SurveyStep } from '@/components/SurveyStep';
-import { ResultStep } from '@/components/ResultStep';
+import { SearchingStep } from '@/components/SearchingStep';
+import { ProfilePage } from '@/components/ProfilePage';
+import { MatchesView } from '@/components/MatchesView';
 import { Button, Shell } from '@/components/ui';
 
-type Step = 'intro' | 'profile' | 'priority' | 'survey' | 'result';
+type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'searching' | 'me' | 'matches';
 
 export default function Page() {
   const [step, setStep] = useState<Step>('intro');
   const [profile, setProfile] = useState<Profile>();
-  const [priorities, setPriorities] = useState<PriorityFilter[]>([]);
+  /** 지역·나이처럼 항상 적용되는 기본 조건 */
+  const [basePriorities, setBasePriorities] = useState<PriorityFilter[]>([]);
+  /** 사용자가 고른 절대 조건 3가지 */
+  const [stanceFilters, setStanceFilters] = useState<PriorityFilter[]>([]);
+  const [stanceIds, setStanceIds] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Answers>({});
-
-  const restart = () => {
-    setProfile(undefined);
-    setPriorities([]);
-    setAnswers({});
-    setStep('intro');
-  };
+  /** 프로필 수정 중인가 — 수정이면 설문을 다시 하지 않고 프로필로 돌아간다 */
+  const [editing, setEditing] = useState(false);
 
   if (step === 'intro') {
     return (
@@ -62,21 +63,30 @@ export default function Page() {
     return (
       <ProfileStep
         progress={0.08}
-        onNext={(p) => {
+        onNext={(p, base) => {
           setProfile(p);
-          setStep('priority');
+          setBasePriorities(base);
+          setStep('stance');
         }}
       />
     );
   }
 
-  if (step === 'priority') {
+  if (step === 'stance') {
     return (
-      <PriorityStep
+      <StanceStep
         progress={0.25}
-        onNext={(f) => {
-          setPriorities(f);
-          setStep('survey');
+        me={profile!}
+        onNext={(filters, ids) => {
+          setStanceFilters(filters);
+          setStanceIds(ids);
+          // 수정 중이면 설문을 다시 시킬 필요가 없다
+          if (editing) {
+            setEditing(false);
+            setStep('me');
+          } else {
+            setStep('survey');
+          }
         }}
       />
     );
@@ -89,12 +99,35 @@ export default function Page() {
         span={0.6}
         onDone={(a) => {
           setAnswers(a);
-          setStep('result');
+          setStep('searching');
         }}
       />
     );
   }
 
-  const me: User = { profile: profile!, priorities, answers };
-  return <ResultStep me={me} onRestart={restart} />;
+  if (step === 'searching') {
+    return <SearchingStep onDone={() => setStep('me')} />;
+  }
+
+  const me: User = {
+    profile: profile!,
+    priorities: [...basePriorities, ...stanceFilters],
+    stanceIds,
+    answers,
+  };
+
+  if (step === 'matches') {
+    return <MatchesView me={me} onBack={() => setStep('me')} />;
+  }
+
+  return (
+    <ProfilePage
+      me={me}
+      onEdit={() => {
+        setEditing(true);
+        setStep('profile');
+      }}
+      onPreviewMatches={() => setStep('matches')}
+    />
+  );
 }
