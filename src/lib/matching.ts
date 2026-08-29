@@ -19,6 +19,7 @@ import { buildStanceFilters } from './stances';
 const STANCE_TO_GROUP: Record<string, string> = {
   smoking: '담배', drinking: '술', religion: '종교',
   marriage: '결혼', children: '자녀', exercise: '운동', politics: '정치',
+  pet: '반려동물',
 };
 
 /** 사용자 한 명의 계산 결과를 재사용하기 위한 묶음 */
@@ -67,6 +68,7 @@ function matchesFilter(p: Profile, f: Facts, filter: PriorityFilter): boolean {
     case 'marriage': return f.marriage !== undefined && filter.allowed.includes(f.marriage);
     case 'children': return f.children !== undefined && filter.allowed.includes(f.children);
     case 'exercise': return f.exercise !== undefined && filter.allowed.includes(f.exercise);
+    case 'pet': return f.pet !== undefined && filter.allowed.includes(f.pet);
     case 'education':
       return p.education !== undefined && filter.allowed.includes(p.education);
   }
@@ -136,13 +138,31 @@ export function answerSimilarity(
 // 3단계: 가중치
 // ────────────────────────────────────────────
 
-/** 이 사람에게 이 문항이 갖는 무게 = 섹션 가중치 × (절대 조건이면 5배) */
+/**
+ * 영역별 문항 수. 가중치를 나눠주는 데 쓴다.
+ *
+ * 이걸로 나누지 않으면 **문항이 많은 영역이 자동으로 더 큰 힘을 갖는다.**
+ * 가치관에 문항을 10개 더 넣었을 뿐인데 가치관의 비중이 35%에서 50%로
+ * 올라가버리는 식이다. 그러면 문항을 추가할 때마다 균형이 깨진다.
+ *
+ * 영역 안에서 나눠 가지게 하면, 문항 수는 **측정의 정밀도**만 올리고
+ * 영역 간 비중은 SECTION_WEIGHTS가 정한 대로 유지된다.
+ */
+const SECTION_COUNTS: Record<Section, number> = (() => {
+  const c = {} as Record<Section, number>;
+  for (const s of Object.keys(SECTION_WEIGHTS) as Section[]) c[s] = 0;
+  for (const q of QUESTIONS) c[q.section] += 1;
+  return c;
+})();
+
+/** 이 사람에게 이 문항이 갖는 무게 */
 function questionWeight(q: Question, user: User): number {
   const boostedGroups = new Set(
     user.stanceIds.map((id) => STANCE_TO_GROUP[id]).filter(Boolean),
   );
   const boosted = q.stanceGroup !== undefined && boostedGroups.has(q.stanceGroup);
-  return SECTION_WEIGHTS[q.section] * (boosted ? PRIORITY_BOOST : 1);
+  const perQuestion = SECTION_WEIGHTS[q.section] / Math.max(1, SECTION_COUNTS[q.section]);
+  return perQuestion * (boosted ? PRIORITY_BOOST : 1);
 }
 
 // ────────────────────────────────────────────
@@ -208,8 +228,8 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
  *    SCORE_ANCHORS(무엇을 몇 점이라 부를지)는 제품 결정이라 그대로 둔다.
  */
 const RAW_ANCHORS = [
-  0.340, 0.430, 0.451, 0.485, 0.525, 0.553, 0.580,
-  0.770, 0.822, 0.856, 0.876, 0.899, 0.910, 0.940,
+  0.436, 0.484, 0.493, 0.510, 0.531, 0.546, 0.558,
+  0.797, 0.827, 0.846, 0.856, 0.872, 0.879, 0.906,
 ];
 const SCORE_ANCHORS = [
   0, 8, 13, 25, 45, 55, 65,

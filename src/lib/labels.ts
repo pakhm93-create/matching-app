@@ -1,6 +1,6 @@
 /** 코드 값 ↔ 화면에 보여줄 한국어 이름 */
 import type {
-  Children, Drinking, Exercise, Gender, Marriage, Religion, Smoking,
+  Children, Drinking, Exercise, Gender, Marriage, Pet, Religion, Smoking,
 } from './types';
 
 export const GENDER: Record<Gender, string> = {
@@ -29,4 +29,7 @@ export const RELIGION: Record<Religion, string> = {
 };
 export const EXERCISE: Record<Exercise, string> = {
   often: '주 3회 이상', sometimes: '가끔', rarely: '거의 안 함',
+};
+export const PET: Record<Pet, string> = {
+  has: '키움', none: '안 키움', allergic: '알레르기 있음',
 };

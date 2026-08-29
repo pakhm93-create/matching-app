@@ -11,7 +11,7 @@ export type Gender = 'male' | 'female' | 'other';
 
 /** 설문에서 뽑아내는 속성들 — 하드 필터가 이 값을 본다 */
 export type FactKey =
-  | 'smoking' | 'drinking' | 'religion' | 'marriage' | 'children' | 'exercise';
+  | 'smoking' | 'drinking' | 'religion' | 'marriage' | 'children' | 'exercise' | 'pet';
 
 export type Smoking = 'none' | 'sometimes' | 'yes';
 export type Drinking = 'none' | 'sometimes' | 'often';
@@ -19,6 +19,7 @@ export type Marriage = 'yes' | 'no' | 'undecided';
 export type Children = 'want' | 'not' | 'undecided';
 export type Religion = 'none' | 'protestant' | 'catholic' | 'buddhist' | 'other';
 export type Exercise = 'often' | 'sometimes' | 'rarely';
+export type Pet = 'has' | 'none' | 'allergic';
 
 /** 설문에서 파생된 속성 묶음 */
 export interface Facts {
@@ -28,6 +29,7 @@ export interface Facts {
   marriage?: Marriage;
   children?: Children;
   exercise?: Exercise;
+  pet?: Pet;
   /** 정치 성향 1(진보) ~ 5(보수). 이슈 문항들의 평균으로 계산. 답이 없으면 null */
   politics: number | null;
 }
@@ -73,6 +75,7 @@ export type PriorityFilter =
   | { key: 'marriage'; allowed: Marriage[] }
   | { key: 'children'; allowed: Children[] }
   | { key: 'exercise'; allowed: Exercise[] }
+  | { key: 'pet'; allowed: Pet[] }
   | { key: 'education'; allowed: string[] };
 
 export type Section = 'values' | 'relationship' | 'lifestyle' | 'personality' | 'taste';
@@ -107,6 +110,16 @@ export interface Question {
   politicsReverse?: boolean;
   /** 이 문항이 어떤 절대 조건과 연결되는가 (선택 시 가중치 상승) */
   stanceGroup?: string;
+  /**
+   * 애착 유형의 어느 축을 재는가.
+   * 이 축만은 "비슷할수록 좋다"가 성립하지 않는다 — 불안형과 회피형이 만나면
+   * 한쪽이 다가갈수록 다른 쪽이 물러선다. 나중에 궁합표로 따로 계산할 것.
+   */
+  attach?: 'anxious' | 'avoidant' | 'secure';
+  /** 애착 문항 중 뒤집어 읽어야 하는 것 */
+  attachReverse?: boolean;
+  /** 1차 설문(매칭 시작에 필요) / 2차 설문(나중에 정확도 올리기) */
+  stage: 1 | 2;
 }
 
 export type AnswerValue = number | string | string[];

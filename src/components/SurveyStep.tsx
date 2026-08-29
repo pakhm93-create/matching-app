@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Answers, Question } from '@/lib/types';
-import { PAGES, QUESTIONS } from '@/lib/questions';
+import { pagesOf } from '@/lib/questions';
 import { Button, Chip, ScaleInput, Shell } from './ui';
 
 /**
@@ -12,19 +12,23 @@ import { Button, Chip, ScaleInput, Shell } from './ui';
  * 5개씩 묶으면 넘기는 횟수가 6번으로 줄고, 남은 양도 눈에 보인다.
  */
 export function SurveyStep({
-  onDone, baseProgress, span, initial,
+  questions, onDone, baseProgress, span, initial, title,
 }: {
+  /** 이번에 물어볼 문항들 (1차 또는 2차) */
+  questions: Question[];
   onDone: (answers: Answers) => void;
   baseProgress: number;
   span: number;
   initial?: Answers;
+  title?: string;
 }) {
+  const PAGES = useMemo(() => pagesOf(questions), [questions]);
   const [page, setPage] = useState(0);
   const [answers, setAnswers] = useState<Answers>(initial ?? {});
   const [showMissing, setShowMissing] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
 
-  const questions = PAGES[page];
+  const pageQuestions = PAGES[page];
   const isLast = page === PAGES.length - 1;
 
   // 페이지를 넘기면 맨 위부터 보이게 한다
@@ -37,7 +41,7 @@ export function SurveyStep({
     const v = answers[q.id];
     return v !== undefined && (!Array.isArray(v) || v.length > 0);
   };
-  const unanswered = questions.filter((q) => !isAnswered(q));
+  const unanswered = pageQuestions.filter((q) => !isAnswered(q));
 
   const setAnswer = (id: string, v: Answers[string]) =>
     setAnswers((prev) => ({ ...prev, [id]: v }));
@@ -61,7 +65,7 @@ export function SurveyStep({
     else setPage(page + 1);
   };
 
-  const answeredCount = QUESTIONS.filter(isAnswered).length;
+  const answeredCount = questions.filter(isAnswered).length;
 
   return (
     <Shell
@@ -82,19 +86,20 @@ export function SurveyStep({
       }
     >
       <div ref={topRef} />
+      {title && <h1 className="text-[20px] font-bold mb-4">{title}</h1>}
       <div className="text-[13px] text-muted mb-6">
-        {page + 1} / {PAGES.length} 쪽 · {answeredCount}개 답변함
+        {page + 1} / {PAGES.length} 쪽 · {answeredCount} / {questions.length}개 답변함
       </div>
 
       <div className="flex flex-col gap-9">
-        {questions.map((q, i) => {
+        {pageQuestions.map((q, i) => {
           const missing = showMissing && !isAnswered(q);
           const current = answers[q.id];
           return (
             <div key={q.id} id={`q-${q.id}`} className="scroll-mt-24">
               <div className="flex gap-2 items-baseline mb-4">
                 <span className={`text-[13px] font-bold ${missing ? 'text-accent' : 'text-muted'}`}>
-                  {page * questions.length + i + 1}
+                  {page * 5 + i + 1}
                 </span>
                 <h2 className="text-[17px] font-semibold leading-snug flex-1">{q.text}</h2>
               </div>

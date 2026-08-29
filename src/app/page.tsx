@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Answers, Strictness, User } from '@/lib/types';
-import { QUESTIONS } from '@/lib/questions';
+import { QUESTIONS, STAGE1, STAGE2 } from '@/lib/questions';
 import { ProfileStep, type ProfileResult } from '@/components/ProfileStep';
 import { StanceStep, type StanceResult } from '@/components/StanceStep';
 import { SurveyStep } from '@/components/SurveyStep';
@@ -11,7 +11,7 @@ import { ProfilePage } from '@/components/ProfilePage';
 import { MatchesView } from '@/components/MatchesView';
 import { Button, Shell } from '@/components/ui';
 
-type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'strictness' | 'me' | 'matches';
+type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'survey2' | 'strictness' | 'me' | 'matches';
 
 export default function Page() {
   const [step, setStep] = useState<Step>('intro');
@@ -35,7 +35,7 @@ export default function Page() {
             성향으로 만나요
           </h1>
           <p className="text-[15px] text-muted mt-5 leading-relaxed">
-            {QUESTIONS.length}개의 질문으로 가치관, 연애 스타일, 생활 습관까지
+            {STAGE1.length}개의 질문으로 가치관, 연애 스타일, 생활 습관까지
             꼼꼼히 살펴본 뒤 가장 잘 맞는 분을 찾아드립니다.
           </p>
         </div>
@@ -70,6 +70,7 @@ export default function Page() {
   if (step === 'survey') {
     return (
       <SurveyStep
+        questions={STAGE1}
         baseProgress={0.3}
         span={0.7}
         initial={answers}
@@ -77,6 +78,19 @@ export default function Page() {
           setAnswers(a);
           setStep('strictness');
         }}
+      />
+    );
+  }
+
+  if (step === 'survey2') {
+    return (
+      <SurveyStep
+        questions={STAGE2}
+        title="조금 더 알려주시면 궁합이 정확해져요"
+        baseProgress={0}
+        span={1}
+        initial={answers}
+        onDone={(a) => { setAnswers(a); setStep('me'); }}
       />
     );
   }
@@ -118,6 +132,7 @@ export default function Page() {
       onEdit={() => { setEditing(true); setStep('profile'); }}
       onChangeStrictness={() => { setEditing(true); setStep('strictness'); }}
       onPreviewMatches={() => setStep('matches')}
+      onContinueSurvey={() => setStep('survey2')}
     />
   );
 }

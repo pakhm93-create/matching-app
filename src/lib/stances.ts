@@ -54,6 +54,9 @@ export const STANCE_TAGS: StanceTag[] = [
   { id: 'exercise', label: '운동', hint: '운동 습관이 비슷한 분만',
     build: (f) => (f.exercise ? { key: 'exercise', allowed: [f.exercise] } : null) },
 
+  { id: 'pet', label: '반려동물', hint: '반려동물에 대한 상황이 같은 분만',
+    build: (f) => (f.pet ? { key: 'pet', allowed: [f.pet] } : null) },
+
   { id: 'height', label: '키', hint: '원하는 키 범위를 정해주세요', needsRange: true,
     build: (_f, _p, range) =>
       range ? { key: 'height', min: range.min, max: range.max } : null },
@@ -80,6 +83,8 @@ export function stanceDisplayName(id: string, f: Facts, p: Profile): string {
     case 'politics': return '정치 성향';
     case 'exercise':
       return f.exercise === 'often' ? '운동 자주' : f.exercise === 'rarely' ? '운동 안 함' : '운동';
+    case 'pet':
+      return f.pet === 'has' ? '반려동물 키움' : f.pet === 'allergic' ? '동물 알레르기' : '반려동물 없음';
     case 'height': return '키';
     case 'education': return p.education ?? '학력';
     default: return id;

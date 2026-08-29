@@ -5,7 +5,7 @@
 import { calcAge, type User } from '../src/lib/types';
 import { findMatches } from '../src/lib/matching';
 import { generateUsers } from '../src/lib/fake-users';
-import { QUESTIONS, SECTION_LABELS, PAGES } from '../src/lib/questions';
+import { QUESTIONS, SECTION_LABELS, STAGE1, STAGE2, pagesOf } from '../src/lib/questions';
 import { extraTraits, personaOf, PERSONA_TYPES } from '../src/lib/personality';
 import { deriveFacts, politicsLabel } from '../src/lib/facts';
 import { STANCE_TAGS, stanceDisplayName } from '../src/lib/stances';
@@ -37,8 +37,10 @@ hr();
 line('화면 표시값 검증');
 hr();
 
-line(`  문항 수: ${QUESTIONS.length}개 · ${PAGES.length}쪽 (한 쪽에 최대 ${PAGES[0].length}개)`);
-const allPaged = PAGES.reduce((n, p) => n + p.length, 0);
+const p1 = pagesOf(STAGE1);
+const p2 = pagesOf(STAGE2);
+line(`  전체 ${QUESTIONS.length}문항 — 1차 ${STAGE1.length}문항(${p1.length}쪽) + 2차 ${STAGE2.length}문항(${p2.length}쪽)`);
+const allPaged = [...p1, ...p2].reduce((n: number, pg: unknown[]) => n + pg.length, 0);
 line(`  모든 문항이 쪽에 배정됐는가: ${allPaged === QUESTIONS.length ? '✅' : `❌ ${allPaged}`}`);
 
 // 설문에서 뽑아낸 사실
