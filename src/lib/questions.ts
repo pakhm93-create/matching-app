@@ -19,13 +19,19 @@
  */
 import type { Question, Section } from './types';
 
-/** 섹션별 가중치 — 관계 지속성 예측력 순. 합계 1.0 */
+/**
+ * 영역별 가중치 — 합계 1.0.
+ *
+ * 생활 습관을 15%에서 20%로 올렸다. 음주·흡연이 여기 있는데,
+ * 이 둘은 관계를 실제로 가르는 축이라 15% 천장 안에서는 담기지 않았다.
+ * 대신 성향과 취향을 낮췄다.
+ */
 export const SECTION_WEIGHTS: Record<Section, number> = {
-  values: 0.35,
+  values: 0.40,
   relationship: 0.25,
-  lifestyle: 0.15,
-  personality: 0.15,
-  taste: 0.10,
+  lifestyle: 0.20,
+  personality: 0.10,
+  taste: 0.05,
 };
 
 export const SECTION_LABELS: Record<Section, string> = {
@@ -390,22 +396,29 @@ const SENSITIVITY: Record<string, number> = {
 // 영역 안에서 서로 나눠 갖는 구조이기 때문이다.
 // ════════════════════════════════════════════════════════
 const WEIGHT: Record<string, number> = {
-  // 음주 — 생활 전반을 좌우하고 다툼의 직접 원인이 되는 일이 잦다
-  f_drink: 3,
-  // 흡연 — 같이 사는 문제로 직결된다
-  f_smoke: 2.5,
-  // 종교 — 이름만 같은 종교인 두 사람은 안 맞을 수 있어 관여도를 더 크게 본다
-  f_religion: 2.5, rel_weight: 3, rel_marry: 2, rel_diff: 2, rel_join: 1.5,
-  // 정치 — 이슈 문항들
-  pol_samesex: 2, pol_estate: 2, pol_union: 2, pol_basic: 2, pol_martial: 2,
+  // ── 생활 습관 (영역 20%) ────────────────────────────
+  // 음주 — 사람을 만나는 태도, 자기관리, 식습관까지 함께 따라온다.
+  //        영역의 30%를 가져가 전체로는 6%가 된다
+  f_drink: 9.6,
+  // 흡연 — 같이 사는 문제로 바로 이어진다. 영역의 20% → 전체 4%
+  f_smoke: 6.4,
+
+  // ── 가치관 (영역 40%) ──────────────────────────────
+  // 종교 — 무엇을 믿는가(3%)보다 얼마나 깊이 관여하는가(4%)가 더 크게 작용한다
+  f_religion: 4.5, rel_weight: 6,
+  rel_marry: 2, rel_diff: 2, rel_join: 1.5,
+  // 결혼·자녀 — 연애의 끝을 가르는 항목. 각각 4%
+  f_marriage: 6, f_children: 6, fam_must: 2,
+  // 정치 — 이슈 문항 5개가 각각 1.4%씩, 합쳐서 7%
+  pol_samesex: 2.1, pol_estate: 2.1, pol_union: 2.1, pol_basic: 2.1, pol_martial: 2.1,
   pol_tolerate: 1.5,
-  // 결혼·자녀 — 연애의 끝을 가르는 항목
-  f_marriage: 3, f_children: 3, fam_must: 2,
-  // 애착 — 불안형과 회피형이 만나면 관계가 오래가지 못한다
-  att_daily: 2, att_reply: 2, att_know: 1.5,
-  att_own: 2, att_alone: 1.5, att_deep: 2, att_busy: 1.5,
+
+  // ── 연애 스타일 (영역 25%) ─────────────────────────
+  // 애착 — 불안형과 회피형이 만나면 관계가 오래가지 못한다. 7문항 합쳐서 10%
+  att_daily: 1.35, att_reply: 1.35, att_know: 1.35,
+  att_own: 1.35, att_alone: 1.35, att_deep: 1.35, att_busy: 1.35,
   // 갈등을 푸는 방식
-  con_now: 1.5, con_time: 1.5,
+  con_now: 1.3, con_time: 1.3,
 };
 
 /** 민감도와 비중을 붙인 최종 문항 목록 */

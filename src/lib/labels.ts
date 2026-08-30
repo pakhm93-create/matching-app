@@ -9,6 +9,14 @@ export const GENDER: Record<Gender, string> = {
 
 export const EDUCATIONS = ['고졸', '전문대졸', '대졸', '대학원졸'];
 
+/** MBTI 16유형 — 프로필 표시용. 매칭 계산에는 쓰지 않는다 */
+export const MBTI_TYPES = [
+  'INTJ', 'INTP', 'ENTJ', 'ENTP',
+  'INFJ', 'INFP', 'ENFJ', 'ENFP',
+  'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+  'ISTP', 'ISFP', 'ESTP', 'ESFP',
+];
+
 // 아래 값들은 기본 정보에서 직접 묻지 않는다.
 // 설문 응답에서 뽑아낸 뒤 프로필 화면에 보여줄 때만 쓴다.
 export const SMOKING: Record<Smoking, string> = {

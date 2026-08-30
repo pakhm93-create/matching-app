@@ -10,9 +10,9 @@ import { personaOf } from '@/lib/personality';
 import { Button, Shell } from './ui';
 
 const STRICTNESS_LABEL: Record<Strictness, string> = {
-  strict: '깐깐하게',
-  balanced: '어느 정도',
-  relaxed: '느긋하게',
+  strict: '아주 잘 맞는 분만',
+  balanced: '어느 정도 맞으면',
+  relaxed: '조금 달라도',
 };
 
 function MatchCard({ m, rank }: { m: MatchResult; rank: number }) {

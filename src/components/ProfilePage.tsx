@@ -11,9 +11,9 @@ import * as L from '@/lib/labels';
 import { Button, Modal, Shell } from './ui';
 
 const STRICTNESS_LABEL: Record<Strictness, string> = {
-  strict: '깐깐하게',
-  balanced: '어느 정도',
-  relaxed: '느긋하게',
+  strict: '아주 잘 맞는 분만',
+  balanced: '어느 정도 맞으면',
+  relaxed: '조금 달라도',
 };
 
 function Card({ children }: { children: React.ReactNode }) {
@@ -161,6 +161,7 @@ export function ProfilePage({
           <Row label="키" value={`${p.heightCm}cm`} />
           <Row label="사는 곳" value={`${p.sido} ${p.sigungu}`} />
           {p.education && <Row label="학력" value={p.education} />}
+          {p.mbti && <Row label="MBTI" value={p.mbti} />}
         </Card>
 
         <p className="text-[12px] text-muted mt-4 mb-2 leading-relaxed">

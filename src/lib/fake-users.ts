@@ -4,7 +4,7 @@
  */
 import type { Answers, Gender, Profile, User } from './types';
 import { QUESTIONS } from './questions';
-import { EDUCATIONS } from './labels';
+import { EDUCATIONS, MBTI_TYPES } from './labels';
 import { REGIONS, SIDO } from './regions';
 
 /** 같은 씨앗을 주면 항상 같은 결과가 나오는 난수 생성기 */
@@ -94,6 +94,7 @@ function randomProfile(rnd: () => number, i: number, gender: Gender): Profile {
     sigungu: pick(rnd, REGIONS[sido]),
     heightCm: gender === 'male' ? intBetween(rnd, 165, 190) : intBetween(rnd, 152, 175),
     education: rnd() < 0.8 ? pick(rnd, EDUCATIONS) : undefined,
+    mbti: rnd() < 0.7 ? pick(rnd, MBTI_TYPES) : undefined,
   };
 }
 

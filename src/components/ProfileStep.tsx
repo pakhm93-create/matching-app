@@ -39,6 +39,7 @@ export function ProfileStep({
   const [travel, setTravel] = useState<number>(initial?.maxTravelMinutes ?? 90);
   const [heightCm, setHeightCm] = useState<number>(ip?.heightCm ?? 170);
   const [education, setEducation] = useState<string | undefined>(ip?.education);
+  const [mbti, setMbti] = useState<string | undefined>(ip?.mbti);
   const [anyAge, setAnyAge] = useState(initial ? initial.ageRange === null : false);
   const [ageRange, setAgeRange] = useState(initial?.ageRange ?? { min: 25, max: 39 });
 
@@ -70,7 +71,7 @@ export function ProfileStep({
       profile: {
         id: 'me', nickname: nickname.trim(), birthYear, birthMonth,
         gender: gender!, seeking, sido: sido!, sigungu: sigungu!,
-        heightCm, education,
+        heightCm, education, mbti,
       },
       ageRange: anyAge ? null : ageRange,
       maxTravelMinutes: travel,
@@ -147,7 +148,7 @@ export function ProfileStep({
 
       <Field
         label="만날 때 얼마나 이동할 수 있으세요?"
-        hint="중간에서 만난다고 보고, 본인이 편도로 움직일 수 있는 시간이에요. 상대도 그만큼 나오니까 실제로는 더 먼 곳의 분과도 만날 수 있습니다"
+        hint="중간에서 만난다고 가정할 때, 본인이 편도로 움직일 수 있는 시간이에요"
       >
         {TRAVEL_OPTIONS.map((o) => (
           <Chip key={o.minutes} label={o.label} selected={travel === o.minutes}
@@ -187,6 +188,16 @@ export function ProfileStep({
         <Chip
           label="입력 안 함" selected={education === undefined}
           onClick={() => setEducation(undefined)}
+        />
+      </Field>
+
+      <Field label="MBTI" hint="프로필에 보여드리는 용도예요. 매칭 계산에는 쓰지 않습니다">
+        {L.MBTI_TYPES.map((m) => (
+          <Chip key={m} label={m} selected={mbti === m} onClick={() => setMbti(m)} />
+        ))}
+        <Chip
+          label="모르겠어요" selected={mbti === undefined}
+          onClick={() => setMbti(undefined)}
         />
       </Field>
     </Shell>

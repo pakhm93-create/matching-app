@@ -188,16 +188,7 @@ export function answerSimilarity(
 // 3단계: 가중치
 // ────────────────────────────────────────────
 
-/**
- * 영역별 문항 수. 가중치를 나눠주는 데 쓴다.
- *
- * 이걸로 나누지 않으면 **문항이 많은 영역이 자동으로 더 큰 힘을 갖는다.**
- * 가치관에 문항을 10개 더 넣었을 뿐인데 가치관의 비중이 35%에서 50%로
- * 올라가버리는 식이다. 그러면 문항을 추가할 때마다 균형이 깨진다.
- *
- * 영역 안에서 나눠 가지게 하면, 문항 수는 **측정의 정밀도**만 올리고
- * 영역 간 비중은 SECTION_WEIGHTS가 정한 대로 유지된다.
- */
+/** 영역별 weight 합 */
 const SECTION_WEIGHT_SUM: Record<Section, number> = (() => {
   const c = {} as Record<Section, number>;
   for (const s of Object.keys(SECTION_WEIGHTS) as Section[]) c[s] = 0;
@@ -209,16 +200,20 @@ const SECTION_WEIGHT_SUM: Record<Section, number> = (() => {
  * 이 사람에게 이 문항이 갖는 무게.
  *
  * 영역이 가진 몫(SECTION_WEIGHTS)을 그 영역 문항들이 각자의 weight 비율만큼
- * 나눠 갖는다. 그래서 문항을 더 넣거나 특정 문항을 무겁게 잡아도
- * **영역 간 비중은 그대로 유지된다.**
+ * 나눠 갖는다.
+ *
+ * 두 가지가 동시에 성립한다.
+ *  - 문항을 더 넣어도 **영역 간 비중은 그대로**다 (문항 수는 정밀도만 올린다)
+ *  - 영역 안에서는 **문항마다 비중이 다르다** — 음주 하나가 생활 습관의 30%를 가져간다
  */
 function questionWeight(q: Question, user: User): number {
   const boostedGroups = new Set(
     user.stanceIds.map((id) => STANCE_TO_GROUP[id]).filter(Boolean),
   );
-  const boosted = q.stanceGroup !== undefined && boostedGroups.has(q.stanceGroup);
+  const boost = q.stanceGroup !== undefined && boostedGroups.has(q.stanceGroup)
+    ? PRIORITY_BOOST : 1;
   const share = q.weight / Math.max(1e-9, SECTION_WEIGHT_SUM[q.section]);
-  return SECTION_WEIGHTS[q.section] * share * (boosted ? PRIORITY_BOOST : 1);
+  return SECTION_WEIGHTS[q.section] * share * boost;
 }
 
 // ────────────────────────────────────────────
@@ -284,8 +279,8 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
  *    SCORE_ANCHORS(무엇을 몇 점이라 부를지)는 제품 결정이라 그대로 둔다.
  */
 const RAW_ANCHORS = [
-  0.393, 0.463, 0.475, 0.496, 0.524, 0.546, 0.566,
-  0.783, 0.813, 0.833, 0.843, 0.859, 0.867, 0.900,
+  0.365, 0.449, 0.465, 0.494, 0.534, 0.562, 0.589,
+  0.772, 0.819, 0.852, 0.866, 0.887, 0.895, 0.927,
 ];
 const SCORE_ANCHORS = [
   0, 8, 13, 25, 45, 55, 65,
