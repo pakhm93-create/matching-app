@@ -19,7 +19,7 @@ export type Marriage = 'yes' | 'no' | 'undecided';
 export type Children = 'want' | 'not' | 'undecided';
 export type Religion = 'none' | 'protestant' | 'catholic' | 'buddhist' | 'other';
 export type Exercise = 'often' | 'sometimes' | 'rarely';
-export type Pet = 'has' | 'none' | 'allergic';
+export type Pet = 'has' | 'likes' | 'none' | 'allergic';
 
 /** 설문에서 파생된 속성 묶음 */
 export interface Facts {

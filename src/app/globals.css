@@ -86,6 +86,9 @@ input, select, textarea, button { font-size: 16px; }
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* 휠을 끝까지 굴렸을 때 뒤 페이지가 같이 밀리지 않게 막는다 */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .wheel::-webkit-scrollbar { display: none; }
 .wheelItem { height: 44px; scroll-snap-align: center; }

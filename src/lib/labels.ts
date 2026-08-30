@@ -11,10 +11,11 @@ export const EDUCATIONS = ['고졸', '전문대졸', '대졸', '대학원졸'];
 
 /** MBTI 16유형 — 프로필 표시용. 매칭 계산에는 쓰지 않는다 */
 export const MBTI_TYPES = [
-  'INTJ', 'INTP', 'ENTJ', 'ENTP',
-  'INFJ', 'INFP', 'ENFJ', 'ENFP',
-  'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-  'ISTP', 'ISFP', 'ESTP', 'ESFP',
+  // 읽기 좋게 E 8개를 먼저, 그다음 I 8개를 둔다
+  'ENFP', 'ENFJ', 'ENTP', 'ENTJ',
+  'ESFP', 'ESFJ', 'ESTP', 'ESTJ',
+  'INFP', 'INFJ', 'INTP', 'INTJ',
+  'ISFP', 'ISFJ', 'ISTP', 'ISTJ',
 ];
 
 // 아래 값들은 기본 정보에서 직접 묻지 않는다.
@@ -39,5 +40,5 @@ export const EXERCISE: Record<Exercise, string> = {
   often: '주 3회 이상', sometimes: '가끔', rarely: '거의 안 함',
 };
 export const PET: Record<Pet, string> = {
-  has: '키움', none: '안 키움', allergic: '알레르기 있음',
+  has: '키움', likes: '안 키우지만 좋아함', none: '안 키움', allergic: '알레르기 있음',
 };

@@ -85,8 +85,8 @@ export default function Page() {
               성향으로 만나요
             </h1>
             <p className="text-[15px] text-muted mt-5 leading-relaxed">
-              {QUESTIONS.length}개의 질문으로 가치관, 연애 스타일, 생활 습관까지
-              꼼꼼히 살펴본 뒤 가장 잘 맞는 분을 찾아드립니다.
+              가치관, 연애 스타일, 생활 습관까지 꼼꼼히 들여다본 뒤
+              가장 잘 맞는 분을 찾아드립니다.
             </p>
           </div>
         </Shell>
@@ -99,10 +99,13 @@ export default function Page() {
       <ProfileStep
         progress={0.06}
         initial={profileResult}
+        submitLabel={editing ? '저장' : '다음'}
         onNext={(r) => {
           setProfileResult(r);
           persist({ profile: r });
-          setStep('stance');
+          // 수정 중이면 설문 흐름으로 넘어가지 않고 프로필로 돌아간다
+          if (editing) { setEditing(false); setStep('me'); }
+          else setStep('stance');
         }}
       />
     );
@@ -113,6 +116,7 @@ export default function Page() {
       <StanceStep
         progress={0.14}
         initial={stanceResult}
+        submitLabel={editing ? '저장' : undefined}
         onNext={(r) => {
           setStanceResult(r);
           persist({ stance: r });
@@ -165,7 +169,7 @@ export default function Page() {
     strictness,
     ageRange: profileResult!.ageRange,
     maxTravelMinutes: profileResult!.maxTravelMinutes,
-    heightRange: stanceResult?.heightRange ?? null,
+    heightRange: profileResult!.heightRange,
     answers,
   };
 
@@ -180,6 +184,7 @@ export default function Page() {
       onDismiss={() => setJustFinished(false)}
       onEdit={() => { setEditing(true); setStep('profile'); }}
       onChangeStrictness={() => { setEditing(true); setStep('strictness'); }}
+      onEditStances={() => { setEditing(true); setStep('stance'); }}
       onPreviewMatches={() => setStep('matches')}
     />
   );

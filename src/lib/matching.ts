@@ -40,9 +40,10 @@ export function prepare(user: User): Prepared {
   if (user.ageRange) {
     filters.push({ key: 'age', min: user.ageRange.min, max: user.ageRange.max });
   }
-  filters.push(
-    ...buildStanceFilters(user.stanceIds, facts, user.profile, user.heightRange),
-  );
+  if (user.heightRange) {
+    filters.push({ key: 'height', min: user.heightRange.min, max: user.heightRange.max });
+  }
+  filters.push(...buildStanceFilters(user.stanceIds, facts, user.profile));
   return { user, facts, filters };
 }
 
@@ -295,8 +296,8 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
  *    SCORE_ANCHORS(무엇을 몇 점이라 부를지)는 제품 결정이라 그대로 둔다.
  */
 const RAW_ANCHORS = [
-  0.352, 0.451, 0.467, 0.498, 0.533, 0.559, 0.587,
-  0.754, 0.796, 0.828, 0.843, 0.863, 0.874, 0.909,
+  0.387, 0.459, 0.475, 0.510, 0.561, 0.590, 0.617,
+  0.758, 0.800, 0.833, 0.848, 0.869, 0.880, 0.929,
 ];
 const SCORE_ANCHORS = [
   0, 8, 13, 25, 45, 55, 65,

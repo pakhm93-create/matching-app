@@ -35,12 +35,13 @@ function Row({ label, value }: { label: string; value: string }) {
  * 설문을 마치면 여기에 도착한다. 매칭 결과로 바로 넘어가지 않는다.
  */
 export function ProfilePage({
-  me, onEdit, onPreviewMatches, onChangeStrictness, justFinished, onDismiss,
+  me, onEdit, onPreviewMatches, onChangeStrictness, onEditStances, justFinished, onDismiss,
 }: {
   me: User;
   onEdit: () => void;
   onPreviewMatches: () => void;
   onChangeStrictness: () => void;
+  onEditStances: () => void;
   /** 설문을 방금 마쳤으면 완료 안내를 팝업으로 띄운다 */
   justFinished?: boolean;
   onDismiss?: () => void;
@@ -138,7 +139,15 @@ export function ProfilePage({
 
         {/* 내 조건 */}
         <Card>
-          <div className="text-[15px] font-semibold mb-2">절대 양보 못 하는 조건</div>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <span className="text-[15px] font-semibold">절대 양보 못 하는 조건</span>
+            <button
+              onClick={onEditStances}
+              className="text-[13px] text-accent font-medium active:opacity-60 shrink-0"
+            >
+              바꾸기
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2 mb-4">
             {me.stanceIds.length === 0 ? (
               <span className="text-[14px] text-muted">선택한 조건이 없어요</span>
@@ -155,11 +164,12 @@ export function ProfilePage({
           </div>
           <div className="border-t border-line pt-1">
             <Row label="만나러 갈 수 있는 거리" value={travelLabel} />
-            <Row label="원하는 나이" value={ageText} />
+            <Row label="원하는 상대의 나이" value={ageText} />
             <Row label="매칭 기준" value={STRICTNESS_LABEL[strictness]} />
-            {me.heightRange && (
-              <Row label="원하는 키" value={`${me.heightRange.min} ~ ${me.heightRange.max}cm`} />
-            )}
+            <Row
+              label="원하는 상대의 키"
+              value={me.heightRange ? `${me.heightRange.min} ~ ${me.heightRange.max}cm` : '상관없음'}
+            />
           </div>
         </Card>
 
@@ -170,7 +180,7 @@ export function ProfilePage({
           <Row label="나이" value={`만 ${age}세 (${p.birthYear}년 ${p.birthMonth}월생)`} />
           <Row label="성별" value={L.GENDER[p.gender]} />
           <Row label="찾는 상대" value={p.seeking.map((g) => L.GENDER[g]).join(', ')} />
-          <Row label="키" value={`${p.heightCm}cm`} />
+          <Row label="내 키" value={`${p.heightCm}cm`} />
           <Row label="사는 곳" value={`${p.sido} ${p.sigungu}`} />
           {p.education && <Row label="학력" value={p.education} />}
           {p.mbti && <Row label="MBTI" value={p.mbti} />}

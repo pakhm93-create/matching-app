@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Answers, Question } from '@/lib/types';
-import { PAGES, QUESTIONS } from '@/lib/questions';
+import { PAGES } from '@/lib/questions';
 import { Button, Chip, ScaleInput, Shell } from './ui';
 
 /**
@@ -71,8 +71,6 @@ export function SurveyStep({
     else setPage(page + 1);
   };
 
-  const answeredCount = QUESTIONS.filter(isAnswered).length;
-
   return (
     <Shell
       progress={baseProgress + (page / PAGES.length) * span}
@@ -91,23 +89,17 @@ export function SurveyStep({
         </div>
       }
     >
-      <div ref={topRef} />
-      <div className="text-[13px] text-muted mb-6">
-        {page + 1} / {PAGES.length} 쪽 · {answeredCount} / {QUESTIONS.length}개 답변함
-      </div>
+      <div ref={topRef} className="pt-2" />
 
       <div className="flex flex-col gap-9">
-        {pageQuestions.map((q, i) => {
+        {pageQuestions.map((q) => {
           const missing = showMissing && !isAnswered(q);
           const current = answers[q.id];
           return (
             <div key={q.id} id={`q-${q.id}`} className="scroll-mt-24">
-              <div className="flex gap-2 items-baseline mb-4">
-                <span className={`text-[13px] font-bold ${missing ? 'text-accent' : 'text-muted'}`}>
-                  {page * 5 + i + 1}
-                </span>
-                <h2 className="text-[17px] font-semibold leading-snug flex-1">{q.text}</h2>
-              </div>
+              <h2 className={`text-[17px] font-semibold leading-snug mb-4 ${missing ? 'text-accent' : ''}`}>
+                {q.text}
+              </h2>
 
               {missing && (
                 <div className="text-[13px] text-accent mb-3">아직 답하지 않으셨어요</div>

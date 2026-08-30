@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import { MAX_STANCES, STANCE_TAGS } from '@/lib/stances';
-import { Button, RangeSlider, Shell } from './ui';
+import { Button, Shell } from './ui';
 
 export interface StanceResult {
   stanceIds: string[];
-  heightRange: { min: number; max: number } | null;
 }
 
 /**
@@ -19,16 +18,14 @@ export interface StanceResult {
  * 0개여도 넘어갈 수 있다. 꼭 걸어야 할 조건이 없는 사람도 있다.
  */
 export function StanceStep({
-  onNext, progress, initial,
+  onNext, progress, initial, submitLabel,
 }: {
   onNext: (r: StanceResult) => void;
   progress: number;
   initial?: StanceResult;
+  submitLabel?: string;
 }) {
   const [picked, setPicked] = useState<string[]>(initial?.stanceIds ?? []);
-  const [heightRange, setHeightRange] = useState(
-    initial?.heightRange ?? { min: 160, max: 180 },
-  );
 
   const toggle = (id: string) => {
     setPicked((prev) => {
@@ -44,13 +41,10 @@ export function StanceStep({
     <Shell
       progress={progress}
       title={'절대 양보할 수 없는 것을\n골라주세요'}
-      subtitle={`최대 ${MAX_STANCES}개까지 고를 수 있어요. 없으면 그냥 넘어가셔도 됩니다. 고른 항목은 반드시 지켜드리고, 고르지 않은 것도 궁합 점수에는 반영돼요.`}
+      subtitle={`최대 ${MAX_STANCES}개까지 고를 수 있어요. 없으면 그냥 넘어가셔도 됩니다.`}
       footer={
-        <Button onClick={() => onNext({
-          stanceIds: picked,
-          heightRange: picked.includes('height') ? heightRange : null,
-        })}>
-          {picked.length === 0 ? '건너뛰고 설문 시작' : '설문 시작하기'}
+        <Button onClick={() => onNext({ stanceIds: picked })}>
+          {submitLabel ?? (picked.length === 0 ? '건너뛰고 설문 시작' : '설문 시작하기')}
         </Button>
       }
     >
@@ -90,19 +84,6 @@ export function StanceStep({
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* 키는 범위를 받아야 한다 */}
-      {picked.includes('height') && (
-        <div className="mt-6 rounded-2xl border border-line bg-surface p-5">
-          <div className="text-[15px] font-semibold mb-3">원하는 키 범위</div>
-          <RangeSlider
-            min={140} max={200}
-            value={heightRange}
-            onChange={setHeightRange}
-            format={(n) => `${n}cm`}
-          />
         </div>
       )}
 

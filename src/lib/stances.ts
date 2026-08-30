@@ -20,14 +20,8 @@ export interface StanceTag {
   label: string;
   /** 눌렀을 때 무슨 뜻인지 한 줄 설명 */
   hint: string;
-  /** 키처럼 범위를 따로 받아야 하는 항목 */
-  needsRange?: boolean;
   /** 내 정보를 바탕으로 상대에게 걸 조건을 만든다. 만들 수 없으면 null */
-  build: (
-    facts: Facts,
-    profile: Profile,
-    range?: { min: number; max: number } | null,
-  ) => PriorityFilter | null;
+  build: (facts: Facts, profile: Profile) => PriorityFilter | null;
 }
 
 export const MAX_STANCES = 3;
@@ -72,10 +66,6 @@ export const STANCE_TAGS: StanceTag[] = [
   { id: 'contact', label: '연락 빈도', hint: '연락하는 빈도가 비슷한 분만',
     build: () => ({ key: 'answerClose', questionIds: CONTACT_QUESTION_IDS, maxDiff: 1 }) },
 
-  { id: 'height', label: '키', hint: '원하는 키 범위를 정해주세요', needsRange: true,
-    build: (_f, _p, range) =>
-      range ? { key: 'height', min: range.min, max: range.max } : null },
-
   { id: 'education', label: '학력', hint: '나와 같은 학력인 분만',
     build: (_f, p) => (p.education ? { key: 'education', allowed: [p.education] } : null) },
 ];
@@ -104,7 +94,6 @@ export function stanceDisplayName(id: string, f: Facts, p: Profile): string {
     case 'money': return '소비 성향';
     case 'rhythm': return '생활 리듬';
     case 'contact': return '연락 빈도';
-    case 'height': return '키';
     case 'education': return p.education ?? '학력';
     default: return id;
   }
@@ -115,9 +104,8 @@ export function buildStanceFilters(
   stanceIds: string[],
   facts: Facts,
   profile: Profile,
-  heightRange?: { min: number; max: number } | null,
 ): PriorityFilter[] {
   return stanceIds
-    .map((id) => STANCE_BY_ID.get(id)?.build(facts, profile, heightRange) ?? null)
+    .map((id) => STANCE_BY_ID.get(id)?.build(facts, profile) ?? null)
     .filter((f): f is PriorityFilter => f !== null);
 }

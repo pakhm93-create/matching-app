@@ -23,10 +23,10 @@ const me: User = {
     sido: '서울', sigungu: '마포구',
     heightCm: 178, education: '대졸',
   },
-  stanceIds: ['smoking', 'hobby', 'height'],
+  stanceIds: ['smoking', 'hobby', 'drinking'],
   ageRange: { min: 26, max: 36 },
   maxTravelMinutes: 120,
-  heightRange: { min: 155, max: 172 },
+  heightRange: { min: 150, max: 175 },
   answers: Object.fromEntries(
     QUESTIONS.map((q) => [
       q.id,
@@ -93,10 +93,11 @@ for (const m of matches) {
 const kept = matches.every((m) => {
   const f = deriveFacts(m.user.answers);
   const h = m.user.profile.heightCm;
-  return f.smoking === facts.smoking && h >= me.heightRange!.min && h <= me.heightRange!.max;
+  return f.smoking === facts.smoking && f.drinking === facts.drinking
+    && h >= me.heightRange!.min && h <= me.heightRange!.max;
 });
 line();
-line(`  절대 조건(흡연·키)이 모두 지켜졌는가: ${matches.length === 0 ? '(후보 없음)' : kept ? '✅' : '❌'}`);
+line(`  절대 조건(흡연·음주)과 키 범위가 지켜졌는가: ${matches.length === 0 ? '(후보 없음)' : kept ? '✅' : '❌'}`);
 hr();
 
 // ── 애착 궁합표 검증 ───────────────────────────────────

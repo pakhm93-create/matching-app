@@ -19,14 +19,17 @@ export interface ProfileResult {
   ageRange: { min: number; max: number } | null;
   /** 만나러 갈 수 있는 최대 시간(분) */
   maxTravelMinutes: number;
+  /** 원하는 상대의 키 범위. null이면 상관없음 */
+  heightRange: { min: number; max: number } | null;
 }
 
 export function ProfileStep({
-  onNext, progress, initial,
+  onNext, progress, initial, submitLabel,
 }: {
   onNext: (r: ProfileResult) => void;
   progress: number;
   initial?: ProfileResult;
+  submitLabel?: string;
 }) {
   const ip = initial?.profile;
   const [nickname, setNickname] = useState(ip?.nickname ?? '');
@@ -41,6 +44,8 @@ export function ProfileStep({
   const [education, setEducation] = useState<string | undefined>(ip?.education);
   const [mbti, setMbti] = useState<string | undefined>(ip?.mbti);
   const [anyAge, setAnyAge] = useState(initial ? initial.ageRange === null : false);
+  const [anyHeight, setAnyHeight] = useState(initial ? !initial.heightRange : true);
+  const [heightRange, setHeightRange] = useState(initial?.heightRange ?? { min: 160, max: 180 });
   const [ageRange, setAgeRange] = useState(initial?.ageRange ?? { min: 25, max: 39 });
 
   /** 다음을 눌렀을 때 어디가 비었는지 알려주기 위한 것 */
@@ -75,6 +80,7 @@ export function ProfileStep({
       },
       ageRange: anyAge ? null : ageRange,
       maxTravelMinutes: travel,
+      heightRange: anyHeight ? null : heightRange,
     });
   };
 
@@ -86,7 +92,7 @@ export function ProfileStep({
       progress={progress}
       title="기본 정보를 알려주세요"
       subtitle="여기서는 사실만 여쭤봅니다. 취향과 가치관은 다음 설문에서 알아볼게요."
-      footer={<Button onClick={submit}>다음</Button>}
+      footer={<Button onClick={submit}>{submitLabel ?? '다음'}</Button>}
     >
       <Field label="닉네임" error={errors.nickname} anchorId="f-nickname">
         <input
@@ -123,7 +129,7 @@ export function ProfileStep({
         ))}
       </Field>
 
-      <Field label="키" hint={`${heightCm}cm`}>
+      <Field label="내 키" hint={`${heightCm}cm`}>
         <div className="w-full rounded-2xl border border-line bg-surface px-3 py-2">
           <Wheel items={HEIGHTS} value={heightCm} onChange={setHeightCm} suffix="cm" />
         </div>
@@ -178,6 +184,28 @@ export function ProfileStep({
         </div>
       </Field>
 
+      <Field label="원하는 상대의 키">
+        <div className="w-full">
+          <RangeSlider
+            min={140} max={200}
+            value={heightRange}
+            onChange={setHeightRange}
+            format={(n) => `${n}cm`}
+            disabled={anyHeight}
+          />
+          <button
+            onClick={() => setAnyHeight(!anyHeight)}
+            className={`mt-3 px-4 py-2.5 rounded-full text-[15px] border transition active:scale-95 ${
+              anyHeight
+                ? 'bg-accent text-accent-fg border-accent font-semibold'
+                : 'bg-surface text-foreground border-line'
+            }`}
+          >
+            키는 상관없어요
+          </button>
+        </div>
+      </Field>
+
       <Field label="최종 학력">
         {L.EDUCATIONS.map((e) => (
           <Chip
@@ -191,7 +219,7 @@ export function ProfileStep({
         />
       </Field>
 
-      <Field label="MBTI" hint="프로필에 보여드리는 용도예요. 매칭 계산에는 쓰지 않습니다">
+      <Field label="MBTI">
         {L.MBTI_TYPES.map((m) => (
           <Chip key={m} label={m} selected={mbti === m} onClick={() => setMbti(m)} />
         ))}
