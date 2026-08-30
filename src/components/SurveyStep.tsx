@@ -1,29 +1,28 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Answers, Question } from '@/lib/types';
-import { pagesOf } from '@/lib/questions';
+import { PAGES, QUESTIONS } from '@/lib/questions';
 import { Button, Chip, ScaleInput, Shell } from './ui';
 
 /**
- * 한 화면에 여러 문항을 보여준다.
+ * 설문. 한 화면에 5문항씩 보여준다.
  *
- * 문항 하나에 한 화면이면 30번 넘겨야 해서 번거롭다.
- * 5개씩 묶으면 넘기는 횟수가 6번으로 줄고, 남은 양도 눈에 보인다.
+ * 설문을 1차·2차로 나누지 않고 한 번에 끝내되, 답할 때마다 자동 저장한다.
+ * 중간에 나가도 다음에 들어오면 이어서 할 수 있다.
  */
 export function SurveyStep({
-  questions, onDone, baseProgress, span, initial, title,
+  onDone, onProgress, baseProgress, span, initial, startPage,
 }: {
-  /** 이번에 물어볼 문항들 (1차 또는 2차) */
-  questions: Question[];
   onDone: (answers: Answers) => void;
+  /** 답할 때마다 호출 — 바깥에서 임시 저장하는 데 쓴다 */
+  onProgress?: (answers: Answers, page: number) => void;
   baseProgress: number;
   span: number;
   initial?: Answers;
-  title?: string;
+  startPage?: number;
 }) {
-  const PAGES = useMemo(() => pagesOf(questions), [questions]);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(startPage ?? 0);
   const [answers, setAnswers] = useState<Answers>(initial ?? {});
   const [showMissing, setShowMissing] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
@@ -36,6 +35,13 @@ export function SurveyStep({
     topRef.current?.scrollIntoView({ block: 'start' });
     window.scrollTo(0, 0);
   }, [page]);
+
+  // 답이 바뀔 때마다 바깥에 알려 임시 저장하게 한다
+  useEffect(() => {
+    onProgress?.(answers, page);
+    // onProgress는 매 렌더 새로 만들어질 수 있어 의존성에서 뺀다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, page]);
 
   const isAnswered = (q: Question) => {
     const v = answers[q.id];
@@ -65,7 +71,7 @@ export function SurveyStep({
     else setPage(page + 1);
   };
 
-  const answeredCount = questions.filter(isAnswered).length;
+  const answeredCount = QUESTIONS.filter(isAnswered).length;
 
   return (
     <Shell
@@ -86,9 +92,8 @@ export function SurveyStep({
       }
     >
       <div ref={topRef} />
-      {title && <h1 className="text-[20px] font-bold mb-4">{title}</h1>}
       <div className="text-[13px] text-muted mb-6">
-        {page + 1} / {PAGES.length} 쪽 · {answeredCount} / {questions.length}개 답변함
+        {page + 1} / {PAGES.length} 쪽 · {answeredCount} / {QUESTIONS.length}개 답변함
       </div>
 
       <div className="flex flex-col gap-9">

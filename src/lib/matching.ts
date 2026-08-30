@@ -8,18 +8,19 @@
  *        4) 기하평균으로 최종 궁합을 만든다.
  */
 import type {
-  AnswerValue, Facts, MatchResult, PriorityFilter, Profile, Question, Section, User,
+  AnswerValue, Answers, Facts, MatchResult, PriorityFilter, Profile, Question, Section, User,
 } from './types';
 import { calcAge } from './types';
 import { PRIORITY_BOOST, QUESTIONS, SECTION_WEIGHTS } from './questions';
 import { deriveFacts } from './facts';
 import { buildStanceFilters } from './stances';
+import { travelMinutes, zoneOf } from './zones';
 
 /** 절대 조건 태그 id ↔ 문항에 붙은 그룹 이름 (가중치를 올릴 문항을 찾는 데 쓴다) */
 const STANCE_TO_GROUP: Record<string, string> = {
   smoking: '담배', drinking: '술', religion: '종교',
   marriage: '결혼', children: '자녀', exercise: '운동', politics: '정치',
-  pet: '반려동물',
+  pet: '반려동물', hobby: '취미', money: '소비', rhythm: '생활리듬', contact: '연락',
 };
 
 /** 사용자 한 명의 계산 결과를 재사용하기 위한 묶음 */
@@ -32,8 +33,8 @@ interface Prepared {
 export function prepare(user: User): Prepared {
   const facts = deriveFacts(user.answers);
   const filters: PriorityFilter[] = [
-    // 지역과 나이는 "애초에 만날 수 있느냐"의 문제라 항상 적용한다
-    { key: 'region', allowed: user.profile.areas },
+    // 거리와 나이는 "애초에 만날 수 있느냐"의 문제라 항상 적용한다
+    { key: 'travel', maxMinutes: user.maxTravelMinutes },
   ];
   if (user.ageRange) {
     filters.push({ key: 'age', min: user.ageRange.min, max: user.ageRange.max });
@@ -48,8 +49,21 @@ export function prepare(user: User): Prepared {
 // 1단계: 하드 필터
 // ────────────────────────────────────────────
 
-/** 상대(프로필 + 설문에서 뽑은 사실)가 조건 하나를 만족하는가 */
-function matchesFilter(p: Profile, f: Facts, filter: PriorityFilter): boolean {
+/** 척도 문항들의 평균값. 답이 없으면 null */
+function meanOf(answers: Answers, ids: string[]): number | null {
+  const vals = ids.map((id) => answers[id]).filter((v): v is number => typeof v === 'number');
+  return vals.length === 0 ? null : vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+/**
+ * 내(me)가 건 조건 하나를 상대(other)가 만족하는가.
+ *
+ * 이동 시간처럼 두 사람을 함께 봐야 하는 조건이 있어서 양쪽을 다 받는다.
+ */
+function matchesFilter(me: Prepared, other: Prepared, filter: PriorityFilter): boolean {
+  const p = other.user.profile;
+  const f = other.facts;
+
   switch (filter.key) {
     case 'age': {
       const age = calcAge(p.birthYear, p.birthMonth);
@@ -60,8 +74,34 @@ function matchesFilter(p: Profile, f: Facts, filter: PriorityFilter): boolean {
     // 모른다는 것과 반대라는 것은 다르다.
     case 'politics':
       return f.politics === null || (f.politics >= filter.min && f.politics <= filter.max);
-    // 지역은 "사는 곳"이 아니라 "만날 수 있는 곳"이라 겹치기만 하면 통과다.
-    case 'region': return p.areas.some((a) => filter.allowed.includes(a));
+    // 사는 곳 사이의 예상 이동 시간이 내가 갈 수 있는 시간 안이어야 한다
+    case 'travel': {
+      const a = zoneOf(me.user.profile.sido, me.user.profile.sigungu);
+      const b = zoneOf(p.sido, p.sigungu);
+      return travelMinutes(a, b) <= filter.maxMinutes;
+    }
+    // 관심사처럼 겹치는 개수를 보는 조건
+    case 'sharedTags': {
+      let shared = 0;
+      let answered = false;
+      for (const qid of filter.questionIds) {
+        const mine = me.user.answers[qid];
+        const theirs = other.user.answers[qid];
+        if (!Array.isArray(mine) || !Array.isArray(theirs)) continue;
+        answered = true;
+        const set = new Set(theirs);
+        shared += mine.filter((t) => set.has(t)).length;
+      }
+      // 아직 답하지 않았으면 거르지 않는다
+      return !answered || shared >= filter.min;
+    }
+    // 소비 성향처럼 "비슷한 정도"를 보는 조건
+    case 'answerClose': {
+      const mine = meanOf(me.user.answers, filter.questionIds);
+      const theirs = meanOf(other.user.answers, filter.questionIds);
+      if (mine === null || theirs === null) return true;
+      return Math.abs(mine - theirs) <= filter.maxDiff;
+    }
     case 'smoking': return f.smoking !== undefined && filter.allowed.includes(f.smoking);
     case 'drinking': return f.drinking !== undefined && filter.allowed.includes(f.drinking);
     case 'religion': return f.religion !== undefined && filter.allowed.includes(f.religion);
@@ -85,8 +125,8 @@ function seekingMatches(a: Profile, b: Profile): boolean {
 export function passesHardFilter(a: Prepared, b: Prepared): boolean {
   if (a.user.profile.id === b.user.profile.id) return false;
   if (!seekingMatches(a.user.profile, b.user.profile)) return false;
-  if (!a.filters.every((f) => matchesFilter(b.user.profile, b.facts, f))) return false;
-  if (!b.filters.every((f) => matchesFilter(a.user.profile, a.facts, f))) return false;
+  if (!a.filters.every((f) => matchesFilter(a, b, f))) return false;
+  if (!b.filters.every((f) => matchesFilter(b, a, f))) return false;
   return true;
 }
 
@@ -228,8 +268,8 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
  *    SCORE_ANCHORS(무엇을 몇 점이라 부를지)는 제품 결정이라 그대로 둔다.
  */
 const RAW_ANCHORS = [
-  0.436, 0.484, 0.493, 0.510, 0.531, 0.546, 0.558,
-  0.797, 0.827, 0.846, 0.856, 0.872, 0.879, 0.906,
+  0.418, 0.466, 0.480, 0.503, 0.527, 0.543, 0.559,
+  0.786, 0.817, 0.835, 0.843, 0.858, 0.864, 0.893,
 ];
 const SCORE_ANCHORS = [
   0, 8, 13, 25, 45, 55, 65,

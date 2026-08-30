@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { MatchResult, Section, Strictness, User } from '@/lib/types';
-import { calcAge, STRICTNESS_PERCENTILE, STRICTNESS_THRESHOLD } from '@/lib/types';
+import { calcAge, STRICTNESS_THRESHOLD } from '@/lib/types';
 import { findMatches } from '@/lib/matching';
 import { generateUsers } from '@/lib/fake-users';
 import { SECTION_LABELS } from '@/lib/questions';
@@ -66,25 +66,19 @@ export function MatchesView({ me, onBack }: { me: User; onBack: () => void }) {
     <Shell footer={<Button variant="ghost" onClick={onBack}>내 프로필로 돌아가기</Button>}>
       <h2 className="text-[20px] font-bold mb-1 mt-2">이번 주 인연</h2>
       <p className="text-[13px] text-muted mb-5 leading-relaxed">
-        {STRICTNESS_LABEL[strictness]} 기준으로 <b className="text-foreground">궁합 {threshold}점 이상</b>인
-        분만 보여드립니다 ({STRICTNESS_PERCENTILE[strictness]}).
+        {STRICTNESS_LABEL[strictness]} 기준으로 성향이 가장 가까운 분들이에요.
       </p>
 
       {passed.length === 0 ? (
         <div className="rounded-3xl border border-line bg-surface p-6">
           <div className="text-[16px] font-semibold mb-2">
-            아직 기준에 맞는 분이 없어요
+            아직 소개해드릴 분이 없어요
           </div>
           <p className="text-[13px] text-muted leading-relaxed">
-            조건에 맞는 분은 {all.length}명 있지만, 궁합 {threshold}점을 넘는 분이 아직 없습니다.
-            {best && (
-              <>
-                {' '}지금 가장 높은 궁합은 <b className="text-foreground">{Math.round(best.score)}점</b>이에요.
-              </>
-            )}
+            만날 수 있는 분은 {all.length}명 있지만, 충분히 잘 맞는 분이 아직 없습니다.
           </p>
           <p className="text-[13px] text-muted leading-relaxed mt-3">
-            기준을 낮추거나, 조금 더 기다려보시는 걸 권합니다.
+            기준을 조금 넓히거나, 더 기다려보시는 걸 권합니다.
             매칭 기준은 프로필에서 언제든 바꿀 수 있어요.
           </p>
         </div>

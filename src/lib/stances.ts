@@ -10,6 +10,9 @@
  * (내 값은 설문에서 알아내므로, 프로필에는 '비혼주의'처럼 구체적으로 표시한다)
  */
 import type { Facts, PriorityFilter, Profile } from './types';
+import {
+  CONTACT_QUESTION_IDS, INTEREST_QUESTION_IDS, MONEY_QUESTION_IDS, RHYTHM_QUESTION_IDS,
+} from './questions';
 
 export interface StanceTag {
   id: string;
@@ -57,6 +60,18 @@ export const STANCE_TAGS: StanceTag[] = [
   { id: 'pet', label: '반려동물', hint: '반려동물에 대한 상황이 같은 분만',
     build: (f) => (f.pet ? { key: 'pet', allowed: [f.pet] } : null) },
 
+  { id: 'hobby', label: '취미', hint: '관심사가 2개 이상 겹치는 분만',
+    build: () => ({ key: 'sharedTags', questionIds: INTEREST_QUESTION_IDS, min: 2 }) },
+
+  { id: 'money', label: '소비 성향', hint: '돈 쓰는 방식이 비슷한 분만',
+    build: () => ({ key: 'answerClose', questionIds: MONEY_QUESTION_IDS, maxDiff: 1 }) },
+
+  { id: 'rhythm', label: '생활 리듬', hint: '주말을 보내는 방식이 비슷한 분만',
+    build: () => ({ key: 'answerClose', questionIds: RHYTHM_QUESTION_IDS, maxDiff: 1 }) },
+
+  { id: 'contact', label: '연락 빈도', hint: '연락하는 빈도가 비슷한 분만',
+    build: () => ({ key: 'answerClose', questionIds: CONTACT_QUESTION_IDS, maxDiff: 1 }) },
+
   { id: 'height', label: '키', hint: '원하는 키 범위를 정해주세요', needsRange: true,
     build: (_f, _p, range) =>
       range ? { key: 'height', min: range.min, max: range.max } : null },
@@ -85,6 +100,10 @@ export function stanceDisplayName(id: string, f: Facts, p: Profile): string {
       return f.exercise === 'often' ? '운동 자주' : f.exercise === 'rarely' ? '운동 안 함' : '운동';
     case 'pet':
       return f.pet === 'has' ? '반려동물 키움' : f.pet === 'allergic' ? '동물 알레르기' : '반려동물 없음';
+    case 'hobby': return '취미';
+    case 'money': return '소비 성향';
+    case 'rhythm': return '생활 리듬';
+    case 'contact': return '연락 빈도';
     case 'height': return '키';
     case 'education': return p.education ?? '학력';
     default: return id;

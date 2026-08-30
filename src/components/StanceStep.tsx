@@ -106,10 +106,6 @@ export function StanceStep({
         </div>
       )}
 
-      <p className="text-[13px] text-muted mt-7 leading-relaxed">
-        조건을 많이 걸수록 만날 수 있는 분이 빠르게 줄어듭니다.
-        그래서 {MAX_STANCES}개로 제한했어요.
-      </p>
     </Shell>
   );
 }

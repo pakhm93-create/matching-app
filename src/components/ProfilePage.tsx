@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import type { Strictness, User } from '@/lib/types';
-import { calcAge, STRICTNESS_PERCENTILE, STRICTNESS_THRESHOLD } from '@/lib/types';
-import { deriveFacts, politicsLabel } from '@/lib/facts';
+import { calcAge } from '@/lib/types';
+import { deriveFacts } from '@/lib/facts';
 import { extraTraits, personaOf } from '@/lib/personality';
 import { stanceDisplayName } from '@/lib/stances';
-import { QUESTIONS, STAGE2 } from '@/lib/questions';
+import { TRAVEL_OPTIONS } from '@/lib/zones';
 import * as L from '@/lib/labels';
 import { Button, Modal, Shell } from './ui';
 
@@ -34,13 +34,12 @@ function Row({ label, value }: { label: string; value: string }) {
  * 설문을 마치면 여기에 도착한다. 매칭 결과로 바로 넘어가지 않는다.
  */
 export function ProfilePage({
-  me, onEdit, onPreviewMatches, onChangeStrictness, onContinueSurvey, justFinished, onDismiss,
+  me, onEdit, onPreviewMatches, onChangeStrictness, justFinished, onDismiss,
 }: {
   me: User;
   onEdit: () => void;
   onPreviewMatches: () => void;
   onChangeStrictness: () => void;
-  onContinueSurvey: () => void;
   /** 설문을 방금 마쳤으면 완료 안내를 팝업으로 띄운다 */
   justFinished?: boolean;
   onDismiss?: () => void;
@@ -56,16 +55,10 @@ export function ProfilePage({
     ? `${me.ageRange.min}세 ~ ${me.ageRange.max}세`
     : '상관없음';
 
-  const strictness: Strictness = me.strictness ?? 'balanced';
-  const threshold = STRICTNESS_THRESHOLD[strictness];
+  const travelLabel =
+    TRAVEL_OPTIONS.find((o) => o.minutes === me.maxTravelMinutes)?.label ?? '제한 없음';
 
-  // 2차 설문이 얼마나 남았는지 — 다 풀면 이 카드는 사라진다
-  const answeredAll = QUESTIONS.filter((q) => {
-    const v = me.answers[q.id];
-    return v !== undefined && (!Array.isArray(v) || v.length > 0);
-  }).length;
-  const stage2Left = STAGE2.filter((q) => me.answers[q.id] === undefined).length;
-  const accuracy = answeredAll / QUESTIONS.length;
+  const strictness: Strictness = me.strictness ?? 'balanced';
 
   return (
     <>
@@ -107,33 +100,6 @@ export function ProfilePage({
           </div>
         </div>
 
-        {/* 2차 설문 — 아직 안 풀었으면 권한다 */}
-        {stage2Left > 0 && (
-          <Card>
-            <div className="text-[15px] font-semibold mb-1.5">궁합을 더 정확하게</div>
-            <p className="text-[13px] text-muted leading-relaxed mb-3">
-              {stage2Left}개 문항이 더 남아 있어요. 풀수록 더 잘 맞는 분을 찾아드릴 수 있습니다.
-            </p>
-            <div className="h-1.5 w-full rounded-full bg-line overflow-hidden mb-3">
-              <div
-                className="h-full rounded-full bg-accent transition-all"
-                style={{ width: `${Math.round(accuracy * 100)}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[12px] text-muted tabular-nums">
-                지금 정확도 {Math.round(accuracy * 100)}%
-              </span>
-              <button
-                onClick={onContinueSurvey}
-                className="text-[13px] text-accent font-semibold active:opacity-60"
-              >
-                이어서 풀기
-              </button>
-            </div>
-          </Card>
-        )}
-
         {/* 이번 주 인연 — 아직 탐색 중 */}
         <Card>
           <div className="flex items-center gap-2 mb-2">
@@ -141,9 +107,8 @@ export function ProfilePage({
             <span className="text-[15px] font-semibold">인연을 찾고 있어요</span>
           </div>
           <p className="text-[13px] text-muted leading-relaxed">
-            <b className="text-foreground">궁합 {threshold}점 이상</b>인 분을 찾고 있어요
-            ({STRICTNESS_LABEL[strictness]}).
-            준비되면 알림으로 알려드릴게요.
+            <b className="text-foreground">{STRICTNESS_LABEL[strictness]}</b> 기준으로
+            성향이 가까운 분을 고르고 있어요. 준비되면 알림으로 알려드릴게요.
           </p>
           <button
             onClick={onChangeStrictness}
@@ -177,28 +142,12 @@ export function ProfilePage({
             )}
           </div>
           <div className="border-t border-line pt-1">
-            <Row label="만날 수 있는 지역" value={p.areas.join(', ')} />
+            <Row label="만나러 갈 수 있는 거리" value={travelLabel} />
             <Row label="원하는 나이" value={ageText} />
-            <Row label="매칭 기준" value={`궁합 ${threshold}점 이상 · ${STRICTNESS_PERCENTILE[strictness]}`} />
+            <Row label="매칭 기준" value={STRICTNESS_LABEL[strictness]} />
             {me.heightRange && (
               <Row label="원하는 키" value={`${me.heightRange.min} ~ ${me.heightRange.max}cm`} />
             )}
-          </div>
-        </Card>
-
-        {/* 설문에서 파악한 것 */}
-        <Card>
-          <div className="text-[15px] font-semibold mb-1">설문에서 파악한 내 정보</div>
-          <p className="text-[12px] text-muted mb-2">답변을 바탕으로 계산한 값이에요</p>
-          <div className="border-t border-line pt-1">
-            {facts.smoking && <Row label="흡연" value={L.SMOKING[facts.smoking]} />}
-            {facts.drinking && <Row label="음주" value={L.DRINKING[facts.drinking]} />}
-            {facts.religion && <Row label="종교" value={L.RELIGION[facts.religion]} />}
-            {facts.marriage && <Row label="결혼" value={L.MARRIAGE[facts.marriage]} />}
-            {facts.children && <Row label="자녀" value={L.CHILDREN[facts.children]} />}
-            {facts.exercise && <Row label="운동" value={L.EXERCISE[facts.exercise]} />}
-            {facts.pet && <Row label="반려동물" value={L.PET[facts.pet]} />}
-            <Row label="정치 성향" value={politicsLabel(facts.politics)} />
           </div>
         </Card>
 
@@ -215,7 +164,7 @@ export function ProfilePage({
         </Card>
 
         <p className="text-[12px] text-muted mt-4 mb-2 leading-relaxed">
-          ※ 아직 저장 기능이 없어 새로고침하면 사라집니다. 다음 단계에서 계정과 함께 붙입니다.
+          ※ 지금은 이 브라우저에만 임시 저장됩니다. 다음 단계에서 계정과 함께 서버에 저장합니다.
         </p>
       </Shell>
     </>

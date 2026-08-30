@@ -78,15 +78,6 @@ function answersNearCluster(rnd: () => number, center: Answers): Answers {
   return answers;
 }
 
-/** 활동 가능 지역 (겹치는 지역이 있으면 매칭 가능) */
-function randomAreas(rnd: () => number, home: string): string[] {
-  const areas = new Set([home]);
-  // 수도권 거주자는 서울까지 활동 범위에 넣는 경우가 많다
-  if ((home === '경기' || home === '인천') && rnd() < 0.7) areas.add('서울');
-  if (rnd() < 0.25) areas.add(pick(rnd, SIDO));
-  return [...areas];
-}
-
 const THIS_YEAR = new Date().getFullYear();
 
 function randomProfile(rnd: () => number, i: number, gender: Gender): Profile {
@@ -101,7 +92,6 @@ function randomProfile(rnd: () => number, i: number, gender: Gender): Profile {
     seeking: gender === 'male' ? ['female'] : ['male'],
     sido,
     sigungu: pick(rnd, REGIONS[sido]),
-    areas: randomAreas(rnd, sido),
     heightCm: gender === 'male' ? intBetween(rnd, 165, 190) : intBetween(rnd, 152, 175),
     education: rnd() < 0.8 ? pick(rnd, EDUCATIONS) : undefined,
   };
@@ -123,6 +113,8 @@ export function generateUsers(count: number, seed = 42, clustered = true): User[
       // 검증용이라 조건은 넉넉하게 (하드 필터에 잘 걸리지 않게)
       stanceIds: [],
       ageRange: { min: 20, max: 60 },
+      // 실제로 사람들이 고를 법한 분포. 대부분 1~2시간 안쪽이다
+      maxTravelMinutes: pick(rnd, [30, 60, 60, 60, 90, 90, 90, 120, 120, 180, 9999]),
       answers: clustered ? answersNearCluster(rnd, center) : randomAnswers(rnd),
     });
   }
@@ -147,7 +139,7 @@ export function generatePlantedUsers(): User[] {
   }
 
   const twinAnswers: Answers = { ...answersA };
-  twinAnswers['l3'] = Math.min(5, (answersA['l3'] as number) + 1);
+  twinAnswers['life_tidy'] = Math.min(5, (answersA['life_tidy'] as number) + 1);
 
   const oppositeAnswers: Answers = {};
   for (const q of QUESTIONS) {
@@ -167,11 +159,12 @@ export function generatePlantedUsers(): User[] {
     profile: {
       id, nickname, birthYear: THIS_YEAR - 30, birthMonth: 6, gender,
       seeking: gender === 'male' ? ['female'] : ['male'],
-      sido: '서울', sigungu: '마포구', areas: ['서울'],
+      sido: '서울', sigungu: '마포구',
       heightCm: 170, education: '대졸',
     },
     stanceIds: [],
     ageRange: { min: 20, max: 60 },
+    maxTravelMinutes: 9999,
     answers,
   });
 

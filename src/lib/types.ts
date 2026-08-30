@@ -46,12 +46,6 @@ export interface Profile {
   /** 사는 곳 (시/도 + 시/군/구) */
   sido: string;
   sigungu: string;
-  /**
-   * 만날 수 있는 지역 (시/도 단위, 복수).
-   * "사는 곳"과 별개다. 경기 살아도 서울에서 만날 수 있으면 둘 다 고른다.
-   * 겹치는 지역이 하나라도 있으면 매칭 가능.
-   */
-  areas: string[];
   heightCm: number;
   /** 선택 입력 — 안 넣어도 된다 */
   education?: string;
@@ -68,7 +62,12 @@ export type PriorityFilter =
   | { key: 'age'; min: number; max: number }
   | { key: 'height'; min: number; max: number }
   | { key: 'politics'; min: number; max: number }
-  | { key: 'region'; allowed: string[] }
+  /** 서로의 사는 곳 사이 예상 이동 시간이 이 값 이하여야 한다 */
+  | { key: 'travel'; maxMinutes: number }
+  /** 복수선택 문항들에서 겹치는 항목이 합쳐서 최소 몇 개 이상이어야 한다 */
+  | { key: 'sharedTags'; questionIds: string[]; min: number }
+  /** 특정 문항들의 평균 응답 차이가 이 값 이하여야 한다 (1~5 척도 기준) */
+  | { key: 'answerClose'; questionIds: string[]; maxDiff: number }
   | { key: 'smoking'; allowed: Smoking[] }
   | { key: 'drinking'; allowed: Drinking[] }
   | { key: 'religion'; allowed: Religion[] }
@@ -118,8 +117,6 @@ export interface Question {
   attach?: 'anxious' | 'avoidant' | 'secure';
   /** 애착 문항 중 뒤집어 읽어야 하는 것 */
   attachReverse?: boolean;
-  /** 1차 설문(매칭 시작에 필요) / 2차 설문(나중에 정확도 올리기) */
-  stage: 1 | 2;
 }
 
 export type AnswerValue = number | string | string[];
@@ -153,6 +150,8 @@ export interface User {
   stanceIds: string[];
   /** 매칭 기준. 정하지 않았으면 balanced로 본다 */
   strictness?: Strictness;
+  /** 만나러 갈 수 있는 최대 시간(분). zones.ts의 TRAVEL_OPTIONS에서 고른다 */
+  maxTravelMinutes: number;
   /** 나이 범위. null이면 상관없음 */
   ageRange: { min: number; max: number } | null;
   /** 키 범위 (절대 조건으로 키를 골랐을 때만) */

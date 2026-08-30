@@ -5,6 +5,7 @@ import type { Gender, Profile } from '@/lib/types';
 import { calcAge } from '@/lib/types';
 import * as L from '@/lib/labels';
 import { REGIONS, SIDO } from '@/lib/regions';
+import { TRAVEL_OPTIONS } from '@/lib/zones';
 import { Button, Chip, Field, RangeSlider, Shell, Wheel } from './ui';
 
 const THIS_YEAR = new Date().getFullYear();
@@ -16,6 +17,8 @@ const HEIGHTS = Array.from({ length: 61 }, (_, i) => 140 + i);
 export interface ProfileResult {
   profile: Profile;
   ageRange: { min: number; max: number } | null;
+  /** 만나러 갈 수 있는 최대 시간(분) */
+  maxTravelMinutes: number;
 }
 
 export function ProfileStep({
@@ -33,7 +36,7 @@ export function ProfileStep({
   const [seeking, setSeeking] = useState<Gender[]>(ip?.seeking ?? []);
   const [sido, setSido] = useState<string | undefined>(ip?.sido);
   const [sigungu, setSigungu] = useState<string | undefined>(ip?.sigungu);
-  const [areas, setAreas] = useState<string[]>(ip?.areas ?? []);
+  const [travel, setTravel] = useState<number>(initial?.maxTravelMinutes ?? 90);
   const [heightCm, setHeightCm] = useState<number>(ip?.heightCm ?? 170);
   const [education, setEducation] = useState<string | undefined>(ip?.education);
   const [anyAge, setAnyAge] = useState(initial ? initial.ageRange === null : false);
@@ -55,7 +58,6 @@ export function ProfileStep({
     if (seeking.length === 0) e.seeking = '어떤 분을 찾는지 골라주세요';
     if (!sido) e.home = '사는 지역을 골라주세요';
     else if (!sigungu) e.home = '시/군/구까지 골라주세요';
-    if (areas.length === 0) e.areas = '만날 수 있는 지역을 하나 이상 골라주세요';
 
     setErrors(e);
     const first = Object.keys(e)[0];
@@ -68,9 +70,10 @@ export function ProfileStep({
       profile: {
         id: 'me', nickname: nickname.trim(), birthYear, birthMonth,
         gender: gender!, seeking, sido: sido!, sigungu: sigungu!,
-        areas, heightCm, education,
+        heightCm, education,
       },
       ageRange: anyAge ? null : ageRange,
+      maxTravelMinutes: travel,
     });
   };
 
@@ -143,14 +146,12 @@ export function ProfileStep({
       )}
 
       <Field
-        label="어디서 만날 수 있나요?"
-        hint="사는 곳이 아니라 실제로 만나러 갈 수 있는 지역이에요. 여러 개 고르면 만날 수 있는 분이 늘어납니다"
-        error={errors.areas}
-        anchorId="f-areas"
+        label="얼마나 멀리까지 만나러 갈 수 있으세요?"
+        hint="사시는 곳을 기준으로 계산해서, 이 시간 안에 만날 수 있는 분만 소개해드려요"
       >
-        {SIDO.map((s) => (
-          <Chip key={s} label={s} selected={areas.includes(s)}
-                onClick={() => toggle(s, areas, setAreas)} />
+        {TRAVEL_OPTIONS.map((o) => (
+          <Chip key={o.minutes} label={o.label} selected={travel === o.minutes}
+                onClick={() => setTravel(o.minutes)} />
         ))}
       </Field>
 
