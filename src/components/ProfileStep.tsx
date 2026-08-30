@@ -146,8 +146,8 @@ export function ProfileStep({
       )}
 
       <Field
-        label="얼마나 멀리까지 만나러 갈 수 있으세요?"
-        hint="사시는 곳을 기준으로 계산해서, 이 시간 안에 만날 수 있는 분만 소개해드려요"
+        label="만날 때 얼마나 이동할 수 있으세요?"
+        hint="중간에서 만난다고 보고, 본인이 편도로 움직일 수 있는 시간이에요. 상대도 그만큼 나오니까 실제로는 더 먼 곳의 분과도 만날 수 있습니다"
       >
         {TRAVEL_OPTIONS.map((o) => (
           <Chip key={o.minutes} label={o.label} selected={travel === o.minutes}
@@ -177,13 +177,17 @@ export function ProfileStep({
         </div>
       </Field>
 
-      <Field label="최종 학력" hint="선택 사항이에요. 넘어가셔도 됩니다">
+      <Field label="최종 학력">
         {L.EDUCATIONS.map((e) => (
           <Chip
             key={e} label={e} selected={education === e}
-            onClick={() => setEducation(education === e ? undefined : e)}
+            onClick={() => setEducation(e)}
           />
         ))}
+        <Chip
+          label="입력 안 함" selected={education === undefined}
+          onClick={() => setEducation(undefined)}
+        />
       </Field>
     </Shell>
   );

@@ -62,7 +62,10 @@ const LIFE_TAGS = [
   '봉사활동', '명상', '자격증 공부', '콘텐츠 제작',
 ];
 
-export const QUESTIONS: Question[] = [
+/** 민감도·비중은 아래 표에서 붙인다 */
+type RawQuestion = Omit<Question, 'sensitivity' | 'weight'>;
+
+const RAW: RawQuestion[] = [
   // ══ 1. 가벼운 사실부터 ════════════════════════════════
   { id: 'f_smoke', section: 'lifestyle', type: 'choice', ordinal: true,
     fact: 'smoking', factValues: ['none', 'sometimes', 'yes'], stanceGroup: '담배',
@@ -332,6 +335,86 @@ export const QUESTIONS: Question[] = [
     text: '2024년 12월 계엄 선포는 정당했다' },
 ];
 
+// ════════════════════════════════════════════════════════
+// 민감도 — 설문 순서를 정하는 데만 쓴다 (1 가벼움 ~ 5 무거움)
+// ════════════════════════════════════════════════════════
+const SENSITIVITY: Record<string, number> = {
+  // 1 — 아무나 편하게 답할 수 있는 것
+  f_pet: 1, f_exercise: 1, t_active: 1, t_culture: 1, t_life: 1,
+  t_weekend: 1, t_travel: 1, t_date: 1,
+  life_weekend: 1, life_tidy: 1, life_late: 1, life_recharge: 1, life_change: 1,
+  eat_spicy: 1, eat_new: 1, eat_health: 1, eat_place: 1, eat_simple: 1,
+
+  // 1 — 성향 문항 일부도 아주 가볍다. 초반이 생활 습관만으로 채워지지 않게 섞는다
+  p_talk: 1, p_strange: 1, p_travel: 1, p_art: 1, p_plan: 1, p_delay: 1,
+
+  // 2 — 나를 설명하는 것
+  f_smoke: 2, f_drink: 2,
+  p_speak: 2, p_refuse: 2, p_mood: 2, p_trust: 2,
+  p_finish: 2, p_worry: 2, p_panic: 2, p_stress: 2, p_abstract: 2,
+  soc_many: 2, soc_intro: 2, soc_their: 2, soc_alone: 2,
+  talk_first: 2, talk_listen: 2, talk_kind: 2,
+
+  // 3 — 연애 방식
+  att_daily: 3, att_reply: 3, att_know: 3, att_own: 3, att_alone: 3,
+  att_deep: 3, att_busy: 3,
+  con_now: 3, con_time: 3, con_yield: 3, con_say: 3,
+  aff_often: 3, aff_moment: 3, aff_anniv: 3, aff_public: 3,
+
+  // 4 — 삶의 방향, 조금 무거운 것
+  work_achieve: 4, work_split: 4, work_stable: 4, work_busy: 4,
+  mon_impulse: 4, mon_track: 4, mon_debt: 4, mon_diff: 4, mon_gift: 4, mon_share: 4,
+  fut_abroad: 4, fut_home: 4, fut_plan: 4, fut_move: 4,
+  bnd_meet: 4, bnd_jealous: 4, bnd_past: 4,
+  role_chores: 4, role_cost: 4, role_decide: 4, role_income: 4,
+
+  // 5 — 가장 무거운 것. 맨 뒤로 간다
+  f_marriage: 5, f_children: 5,
+  fam_must: 5, fam_cohab: 5, fam_fund: 5, fam_dual: 5, fam_account: 5,
+  f_religion: 5, rel_weight: 5, rel_diff: 5, rel_join: 5, rel_marry: 5,
+  pol_tolerate: 5, pol_samesex: 5, pol_estate: 5, pol_union: 5,
+  pol_basic: 5, pol_martial: 5,
+};
+
+// ════════════════════════════════════════════════════════
+// 문항별 비중 — 같은 영역 안에서 얼마나 크게 볼 것인가
+//
+// 모든 문항이 똑같이 중요하지는 않다.
+// 관계를 실제로 갈라놓는 것들(음주 습관, 종교, 정치, 결혼·자녀관)을 크게 잡는다.
+//
+// ⚠️ 이 숫자들은 측정값이 아니라 **제품 판단**이다.
+//    실사용자에게서 "어떤 항목이 어긋났을 때 실제로 헤어지는가"를 관찰하면
+//    그때 근거를 갖고 다시 잡아야 한다.
+//
+// 영역 간 비중(SECTION_WEIGHTS)은 이 값과 무관하게 유지된다.
+// 영역 안에서 서로 나눠 갖는 구조이기 때문이다.
+// ════════════════════════════════════════════════════════
+const WEIGHT: Record<string, number> = {
+  // 음주 — 생활 전반을 좌우하고 다툼의 직접 원인이 되는 일이 잦다
+  f_drink: 3,
+  // 흡연 — 같이 사는 문제로 직결된다
+  f_smoke: 2.5,
+  // 종교 — 이름만 같은 종교인 두 사람은 안 맞을 수 있어 관여도를 더 크게 본다
+  f_religion: 2.5, rel_weight: 3, rel_marry: 2, rel_diff: 2, rel_join: 1.5,
+  // 정치 — 이슈 문항들
+  pol_samesex: 2, pol_estate: 2, pol_union: 2, pol_basic: 2, pol_martial: 2,
+  pol_tolerate: 1.5,
+  // 결혼·자녀 — 연애의 끝을 가르는 항목
+  f_marriage: 3, f_children: 3, fam_must: 2,
+  // 애착 — 불안형과 회피형이 만나면 관계가 오래가지 못한다
+  att_daily: 2, att_reply: 2, att_know: 1.5,
+  att_own: 2, att_alone: 1.5, att_deep: 2, att_busy: 1.5,
+  // 갈등을 푸는 방식
+  con_now: 1.5, con_time: 1.5,
+};
+
+/** 민감도와 비중을 붙인 최종 문항 목록 */
+export const QUESTIONS: Question[] = RAW.map((q) => ({
+  ...q,
+  sensitivity: SENSITIVITY[q.id] ?? 3,
+  weight: WEIGHT[q.id] ?? 1,
+}));
+
 export const QUESTION_BY_ID = new Map(QUESTIONS.map((q) => [q.id, q]));
 
 /** 관심사 문항들 — 절대 조건 '취미'가 이 문항들의 겹침을 본다 */
@@ -343,11 +426,77 @@ export const RHYTHM_QUESTION_IDS = ['life_weekend', 'life_recharge'];
 /** 연락 빈도를 재는 문항들 */
 export const CONTACT_QUESTION_IDS = ['att_daily', 'att_reply'];
 
-/** 한 화면에 여러 문항을 보여주기 위해 페이지로 나눈다 */
+// ════════════════════════════════════════════════════════
+// 페이지 구성
+//
+// 두 가지를 지킨다.
+//  1. **한 페이지는 응답 형식이 같아야 한다.** 5점 척도를 찍다가 갑자기
+//     취미를 고르는 화면이 나오면 손이 멈춘다.
+//  2. **한 페이지 안에서는 영역이 섞여야 한다.** 종교만 다섯 개 연달아 나오면
+//     취조당하는 기분이 든다. 생활 하나, 연애 하나, 종교 하나 식으로 섞는다.
+//
+// 순서는 여전히 가벼운 것부터다. 민감도로 정렬한 뒤 위 두 규칙을 적용한다.
+// ════════════════════════════════════════════════════════
+
+/** 같은 민감도 안에서 영역을 번갈아 꺼내 섞는다 */
+function mixSections(qs: Question[]): Question[] {
+  const bySensitivity = new Map<number, Question[]>();
+  for (const q of qs) {
+    const list = bySensitivity.get(q.sensitivity) ?? [];
+    list.push(q);
+    bySensitivity.set(q.sensitivity, list);
+  }
+
+  const out: Question[] = [];
+  for (const level of [...bySensitivity.keys()].sort((a, b) => a - b)) {
+    const queues = new Map<string, Question[]>();
+    for (const q of bySensitivity.get(level)!) {
+      const list = queues.get(q.section) ?? [];
+      list.push(q);
+      queues.set(q.section, list);
+    }
+    const lanes = [...queues.values()];
+    let i = 0;
+    while (lanes.some((l) => l.length > 0)) {
+      const lane = lanes[i % lanes.length];
+      if (lane.length > 0) out.push(lane.shift()!);
+      i++;
+    }
+  }
+  return out;
+}
+
+/**
+ * 목록을 고르게 나눈다.
+ * 11개를 5씩 자르면 5·5·1이 되어 마지막 페이지에 한 문항만 남는다.
+ * 페이지 수는 같게 두되 4·4·3으로 고르게 편다.
+ */
+function chunkEvenly(list: Question[], target: number): Question[][] {
+  if (list.length === 0) return [];
+  const pageCount = Math.ceil(list.length / target);
+  const base = Math.floor(list.length / pageCount);
+  const extra = list.length % pageCount;
+
+  const out: Question[][] = [];
+  let i = 0;
+  for (let p = 0; p < pageCount; p++) {
+    const size = base + (p < extra ? 1 : 0);
+    out.push(list.slice(i, i + size));
+    i += size;
+  }
+  return out;
+}
+
 export const PAGES: Question[][] = (() => {
   const pages: Question[][] = [];
-  for (let i = 0; i < QUESTIONS.length; i += QUESTIONS_PER_PAGE) {
-    pages.push(QUESTIONS.slice(i, i + QUESTIONS_PER_PAGE));
+
+  // 형식별로 나눠서 페이지를 만든다
+  for (const type of ['scale', 'choice', 'multi'] as const) {
+    const ordered = mixSections(QUESTIONS.filter((q) => q.type === type));
+    pages.push(...chunkEvenly(ordered, QUESTIONS_PER_PAGE));
   }
-  return pages;
+
+  // 가벼운 페이지부터 나오도록 정렬
+  const avg = (p: Question[]) => p.reduce((n, q) => n + q.sensitivity, 0) / p.length;
+  return pages.sort((a, b) => avg(a) - avg(b));
 })();

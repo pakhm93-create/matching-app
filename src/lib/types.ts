@@ -117,6 +117,17 @@ export interface Question {
   attach?: 'anxious' | 'avoidant' | 'secure';
   /** 애착 문항 중 뒤집어 읽어야 하는 것 */
   attachReverse?: boolean;
+  /**
+   * 이 문항이 얼마나 무거운가 (1 가벼움 ~ 5 무거움).
+   * 설문 순서를 정하는 데만 쓴다. 가벼운 것부터 물어야 이탈이 적다.
+   */
+  sensitivity: number;
+  /**
+   * 같은 영역 안에서 이 문항이 갖는 비중 배수 (기본 1).
+   * 모든 문항이 똑같이 중요하지는 않다. 음주·종교·정치처럼
+   * 관계를 실제로 갈라놓는 항목은 더 크게 잡는다.
+   */
+  weight: number;
 }
 
 export type AnswerValue = number | string | string[];

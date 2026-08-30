@@ -116,16 +116,28 @@ const mkAt = (u: User, sido: string, sigungu: string, minutes: number, gender: '
   stanceIds: [], ageRange: null, maxTravelMinutes: minutes,
 });
 
-const seoulTight = mkAt(pool[0], '서울', '마포구', 60, 'male');
-const busanPerson = mkAt(pool[1], '부산', '해운대구', 9999, 'female');
-const seoulNear = mkAt(pool[1], '경기', '의정부시', 9999, 'female');
 line('');
-line(`  → 1시간 조건인 서울 사람과 부산 사람이 제외되는가: ${!passesHardFilter(prepare(seoulTight), prepare(busanPerson)) ? '✅' : '❌'}`);
-line(`  → 1시간 조건인 서울 사람과 의정부 사람이 통과하는가: ${passesHardFilter(prepare(seoulTight), prepare(seoulNear)) ? '✅' : '❌'}`);
-// 파주(경기 북부)와 평택(경기 남부)은 같은 도지만 멀다
-const paju = mkAt(pool[0], '경기', '파주시', 60, 'male');
-const pyeongtaek = mkAt(pool[1], '경기', '평택시', 9999, 'female');
-line(`  → 같은 경기도라도 파주-평택이 1시간 조건에서 걸러지는가: ${!passesHardFilter(prepare(paju), prepare(pyeongtaek)) ? '✅' : '❌'}`);
+line('  둘이 합쳐서 이 거리를 덮으면 만날 수 있다고 본다 (중간에서 만나므로)');
+
+// 사용자가 든 예: 강북(1시간 30분) ↔ 수원(1시간), 집 사이 88분
+const gangbuk = mkAt(pool[0], '서울', '강북구', 90, 'male');
+const suwon = mkAt(pool[1], '경기', '수원시', 60, 'female');
+line(`  → 서울(90분) + 수원(60분) = 150분 ≥ 88분, 만날 수 있는가: ${passesHardFilter(prepare(gangbuk), prepare(suwon)) ? '✅' : '❌'}`);
+
+// 둘 다 30분씩만 움직일 수 있으면 서울-수원은 무리다
+const tightA = mkAt(pool[0], '서울', '강북구', 30, 'male');
+const tightB = mkAt(pool[1], '경기', '수원시', 30, 'female');
+line(`  → 둘 다 30분만 가능하면(합 60분 < 88분) 제외되는가: ${!passesHardFilter(prepare(tightA), prepare(tightB)) ? '✅' : '❌'}`);
+
+// 서울-부산은 둘이 아무리 합쳐도 어렵다
+const seoul2h = mkAt(pool[0], '서울', '마포구', 120, 'male');
+const busan2h = mkAt(pool[1], '부산', '해운대구', 120, 'female');
+line(`  → 서울-부산은 각자 2시간씩(합 240분 < 299분) 나와도 제외되는가: ${!passesHardFilter(prepare(seoul2h), prepare(busan2h)) ? '✅' : '❌'}`);
+
+// 파주(경기 북부)와 평택(경기 남부)은 같은 도지만 126분이라 멀다
+const paju = mkAt(pool[0], '경기', '파주시', 30, 'male');
+const pyeongtaek = mkAt(pool[1], '경기', '평택시', 30, 'female');
+line(`  → 같은 경기도라도 파주-평택은 둘 다 30분이면 제외되는가: ${!passesHardFilter(prepare(paju), prepare(pyeongtaek)) ? '✅' : '❌'}`);
 
 // ── 5) 매칭 기준 ──────────────────────────────
 hr();
@@ -149,21 +161,31 @@ for (let i = 0; i < sampleSize; i++) {
 }
 allScores.sort((a, b) => a - b);
 const at = (p: number) => allScores[Math.floor(allScores.length * p)];
+const candidatesPerPerson = allScores.length / sampleSize;
 
-line(`  표본 ${sampleSize}명 × 400명 풀 = ${allScores.length}쌍`);
+line(`  표본 ${sampleSize}명 × 400명 풀 = ${allScores.length}쌍 (1인당 후보 ${candidatesPerPerson.toFixed(0)}명)`);
 line(`  중앙값 ${at(0.5).toFixed(1)}점 · 상위10% ${at(0.9).toFixed(1)}점 · 상위1% ${at(0.99).toFixed(1)}점`);
 line('');
+
+// 점수는 백분위로 정의돼 있으므로 절대 인원이 아니라 **후보 대비 비율**로 본다.
+// 인원은 풀 크기에 따라 달라지지만 비율은 눈금이 제대로 그려졌는지를 보여준다.
 const NAMES: Record<string, string> = {
   strict: '아주 잘 맞는 분만', balanced: '어느 정도(추천)', relaxed: '조금 달라도',
+};
+const TARGET: Record<string, [number, number]> = {
+  strict: [1, 6],     // 상위 3% 근처
+  balanced: [5, 16],  // 상위 10% 근처
+  relaxed: [15, 35],  // 상위 25% 근처
 };
 let ok = true;
 for (const [k, t] of Object.entries(STRICTNESS_THRESHOLD)) {
   const avg = perPerson[k] / sampleSize;
-  // 한 명당 0.5~15명 사이면 배급 모델로 쓸 만하다
-  const good = avg >= 0.5 && avg <= 15;
+  const share = (avg / candidatesPerPerson) * 100;
+  const [lo, hi] = TARGET[k];
+  const good = share >= lo && share <= hi && avg >= 0.5;
   if (!good) ok = false;
-  line(`  ${String(t).padStart(2)}점 이상 · ${NAMES[k]}: 1인당 평균 ${avg.toFixed(1)}명  ${good ? '✅' : '❌'}`);
+  line(`  ${String(t).padStart(2)}점 이상 · ${NAMES[k]}: 후보의 ${share.toFixed(1)}% (1인당 ${avg.toFixed(1)}명)  ${good ? '✅' : `❌ 목표 ${lo}~${hi}%`}`);
 }
 line('');
-line(`  → 세 기준이 모두 쓸 만한가: ${ok ? '✅' : '❌ 기준 점수나 눈금(RAW_ANCHORS)을 조정할 것'}`);
+line(`  → 눈금이 제대로 그려졌는가: ${ok ? '✅' : '❌ RAW_ANCHORS를 다시 측정할 것'}`);
 hr();

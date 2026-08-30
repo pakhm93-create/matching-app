@@ -74,11 +74,21 @@ function matchesFilter(me: Prepared, other: Prepared, filter: PriorityFilter): b
     // 모른다는 것과 반대라는 것은 다르다.
     case 'politics':
       return f.politics === null || (f.politics >= filter.min && f.politics <= filter.max);
-    // 사는 곳 사이의 예상 이동 시간이 내가 갈 수 있는 시간 안이어야 한다
+    /**
+     * 거리 조건.
+     *
+     * 두 사람은 보통 **중간에서 만난다.** 그래서 각자가 답한 시간은
+     * "상대 집까지 가는 시간"이 아니라 "내가 편도로 움직일 수 있는 시간"이다.
+     * 둘을 합친 만큼이 두 집 사이의 거리를 덮으면 만날 수 있다.
+     *
+     * 예) 강북(1시간 30분 가능) ↔ 수원(1시간 가능), 집 사이는 2시간.
+     *     중간 지점에서 만나면 각자 1시간씩이면 되므로 만날 수 있다.
+     */
     case 'travel': {
       const a = zoneOf(me.user.profile.sido, me.user.profile.sigungu);
       const b = zoneOf(p.sido, p.sigungu);
-      return travelMinutes(a, b) <= filter.maxMinutes;
+      const both = filter.maxMinutes + other.user.maxTravelMinutes;
+      return travelMinutes(a, b) <= both;
     }
     // 관심사처럼 겹치는 개수를 보는 조건
     case 'sharedTags': {
@@ -188,21 +198,27 @@ export function answerSimilarity(
  * 영역 안에서 나눠 가지게 하면, 문항 수는 **측정의 정밀도**만 올리고
  * 영역 간 비중은 SECTION_WEIGHTS가 정한 대로 유지된다.
  */
-const SECTION_COUNTS: Record<Section, number> = (() => {
+const SECTION_WEIGHT_SUM: Record<Section, number> = (() => {
   const c = {} as Record<Section, number>;
   for (const s of Object.keys(SECTION_WEIGHTS) as Section[]) c[s] = 0;
-  for (const q of QUESTIONS) c[q.section] += 1;
+  for (const q of QUESTIONS) c[q.section] += q.weight;
   return c;
 })();
 
-/** 이 사람에게 이 문항이 갖는 무게 */
+/**
+ * 이 사람에게 이 문항이 갖는 무게.
+ *
+ * 영역이 가진 몫(SECTION_WEIGHTS)을 그 영역 문항들이 각자의 weight 비율만큼
+ * 나눠 갖는다. 그래서 문항을 더 넣거나 특정 문항을 무겁게 잡아도
+ * **영역 간 비중은 그대로 유지된다.**
+ */
 function questionWeight(q: Question, user: User): number {
   const boostedGroups = new Set(
     user.stanceIds.map((id) => STANCE_TO_GROUP[id]).filter(Boolean),
   );
   const boosted = q.stanceGroup !== undefined && boostedGroups.has(q.stanceGroup);
-  const perQuestion = SECTION_WEIGHTS[q.section] / Math.max(1, SECTION_COUNTS[q.section]);
-  return perQuestion * (boosted ? PRIORITY_BOOST : 1);
+  const share = q.weight / Math.max(1e-9, SECTION_WEIGHT_SUM[q.section]);
+  return SECTION_WEIGHTS[q.section] * share * (boosted ? PRIORITY_BOOST : 1);
 }
 
 // ────────────────────────────────────────────
@@ -268,8 +284,8 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
  *    SCORE_ANCHORS(무엇을 몇 점이라 부를지)는 제품 결정이라 그대로 둔다.
  */
 const RAW_ANCHORS = [
-  0.418, 0.466, 0.480, 0.503, 0.527, 0.543, 0.559,
-  0.786, 0.817, 0.835, 0.843, 0.858, 0.864, 0.893,
+  0.393, 0.463, 0.475, 0.496, 0.524, 0.546, 0.566,
+  0.783, 0.813, 0.833, 0.843, 0.859, 0.867, 0.900,
 ];
 const SCORE_ANCHORS = [
   0, 8, 13, 25, 45, 55, 65,
