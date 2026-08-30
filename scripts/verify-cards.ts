@@ -9,6 +9,7 @@ import { PAGES, QUESTIONS, SECTION_LABELS, SECTION_WEIGHTS } from '../src/lib/qu
 import { extraTraits, personaOf, PERSONA_TYPES } from '../src/lib/personality';
 import { deriveFacts, politicsLabel } from '../src/lib/facts';
 import { STANCE_TAGS, stanceDisplayName } from '../src/lib/stances';
+import { attachCompatibility, attachScore } from '../src/lib/attachment';
 
 const THIS_YEAR = new Date().getFullYear();
 const line = (s = '') => console.log(s);
@@ -96,4 +97,47 @@ const kept = matches.every((m) => {
 });
 line();
 line(`  절대 조건(흡연·키)이 모두 지켜졌는가: ${matches.length === 0 ? '(후보 없음)' : kept ? '✅' : '❌'}`);
+hr();
+
+// ── 애착 궁합표 검증 ───────────────────────────────────
+hr();
+line('애착 궁합 검증');
+hr();
+line('  이 영역만 "비슷할수록 좋다"가 아니다. 표대로 나오는지 본다.');
+line('');
+
+const scale = (ids: string[], v: number) => Object.fromEntries(ids.map((id) => [id, v]));
+const ANX = ['att_daily', 'att_reply', 'att_know'];
+const AVO = ['att_own', 'att_alone', 'att_deep'];
+const SEC = ['att_busy'];
+
+const makeStyle = (anx: number, avo: number, sec: number) => ({
+  ...scale(ANX, anx), ...scale(AVO, avo), ...scale(SEC, sec),
+});
+const 안정 = makeStyle(2, 2, 5);
+const 불안 = makeStyle(5, 2, 1);
+const 회피 = makeStyle(2, 5, 3);
+const 혼란 = makeStyle(5, 5, 1);
+
+const styles: [string, Record<string, number>][] = [
+  ['안정', 안정], ['불안', 불안], ['회피', 회피], ['혼란', 혼란],
+];
+for (const [n, a] of styles) {
+  const s = attachScore(a)!;
+  line(`  ${n}형으로 답한 사람 → 판정: ${s.style} (불안 ${s.anxiety.toFixed(2)} · 회피 ${s.avoidance.toFixed(2)})`);
+}
+line('');
+line('  궁합표 (행 × 열)');
+line('        ' + styles.map(([n]) => n.padStart(6)).join(''));
+for (const [n1, a] of styles) {
+  const row = styles.map(([, b]) => (attachCompatibility(a, b)! * 100).toFixed(0).padStart(6)).join('');
+  line(`  ${n1.padEnd(6)}${row}`);
+}
+line('');
+const anxAvo = attachCompatibility(불안, 회피)!;
+const secAny = attachCompatibility(안정, 불안)!;
+const anxAnx = attachCompatibility(불안, 불안)!;
+line(`  → 불안 × 회피가 가장 낮은가: ${anxAvo < anxAnx && anxAvo < secAny ? '✅' : '❌'}`);
+line(`  → 안정형은 누구와도 무난한가: ${secAny > 0.7 ? '✅' : '❌'}`);
+line(`  → 불안끼리도 좋지 않은가: ${anxAnx < 0.7 ? '✅' : '❌'}`);
 hr();

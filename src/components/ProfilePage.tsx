@@ -6,6 +6,7 @@ import { calcAge } from '@/lib/types';
 import { deriveFacts } from '@/lib/facts';
 import { extraTraits, personaOf } from '@/lib/personality';
 import { stanceDisplayName } from '@/lib/stances';
+import { ATTACH_LABEL, attachScore } from '@/lib/attachment';
 import { TRAVEL_OPTIONS } from '@/lib/zones';
 import * as L from '@/lib/labels';
 import { Button, Modal, Shell } from './ui';
@@ -48,6 +49,11 @@ export function ProfilePage({
   const persona = useMemo(() => personaOf(me.answers), [me.answers]);
   const traits = useMemo(() => extraTraits(me.answers), [me.answers]);
   const facts = useMemo(() => deriveFacts(me.answers), [me.answers]);
+  // 애착 유형은 임상 용어를 그대로 쓰지 않고 부드러운 말로만 보여준다
+  const attachLine = useMemo(() => {
+    const s = attachScore(me.answers);
+    return s ? ATTACH_LABEL[s.style] : null;
+  }, [me.answers]);
   const p = me.profile;
   const age = calcAge(p.birthYear, p.birthMonth);
 
@@ -91,6 +97,12 @@ export function ProfilePage({
           </div>
 
           <div className="mt-4 flex flex-col gap-1.5">
+            {attachLine && (
+              <div className="text-[13px] text-muted flex gap-2">
+                <span className="text-accent">·</span>
+                {attachLine}
+              </div>
+            )}
             {traits.map((t) => (
               <div key={t} className="text-[13px] text-muted flex gap-2">
                 <span className="text-accent">·</span>

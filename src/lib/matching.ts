@@ -15,6 +15,7 @@ import { PRIORITY_BOOST, QUESTIONS, SECTION_WEIGHTS } from './questions';
 import { deriveFacts } from './facts';
 import { buildStanceFilters } from './stances';
 import { travelMinutes, zoneOf } from './zones';
+import { attachCompatibility } from './attachment';
 
 /** 절대 조건 태그 id ↔ 문항에 붙은 그룹 이름 (가중치를 올릴 문항을 찾는 데 쓴다) */
 const STANCE_TO_GROUP: Record<string, string> = {
@@ -231,14 +232,29 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
   const secW: Record<string, number> = {};
   const secS: Record<string, number> = {};
 
-  for (const q of QUESTIONS) {
-    const sim = answerSimilarity(q, viewer.answers[q.id], other.answers[q.id]);
-    if (sim === null) continue;
-    const w = questionWeight(q, viewer);
+  const add = (section: Section, w: number, sim: number) => {
     totalW += w;
     totalS += w * sim;
-    secW[q.section] = (secW[q.section] ?? 0) + w;
-    secS[q.section] = (secS[q.section] ?? 0) + w * sim;
+    secW[section] = (secW[section] ?? 0) + w;
+    secS[section] = (secS[section] ?? 0) + w * sim;
+  };
+
+  for (const q of QUESTIONS) {
+    // 애착 문항은 아래에서 궁합표로 따로 계산한다
+    if (q.attach !== undefined) continue;
+    const sim = answerSimilarity(q, viewer.answers[q.id], other.answers[q.id]);
+    if (sim === null) continue;
+    add(q.section, questionWeight(q, viewer), sim);
+  }
+
+  // 애착 — 유사도가 아니라 궁합표로 계산한다.
+  // 불안형과 회피형은 서로 비슷하지 않아서 문제가 아니라, 만나면 안 맞아서 문제다.
+  const attachSim = attachCompatibility(viewer.answers, other.answers);
+  if (attachSim !== null) {
+    const attachW = QUESTIONS
+      .filter((q) => q.attach !== undefined)
+      .reduce((n, q) => n + questionWeight(q, viewer), 0);
+    add('relationship', attachW, attachSim);
   }
 
   const bySection = {} as Record<Section, number>;
@@ -279,8 +295,8 @@ function directionalScore(viewer: User, other: User): DirectionalResult {
  *    SCORE_ANCHORS(무엇을 몇 점이라 부를지)는 제품 결정이라 그대로 둔다.
  */
 const RAW_ANCHORS = [
-  0.365, 0.449, 0.465, 0.494, 0.534, 0.562, 0.589,
-  0.772, 0.819, 0.852, 0.866, 0.887, 0.895, 0.927,
+  0.352, 0.451, 0.467, 0.498, 0.533, 0.559, 0.587,
+  0.754, 0.796, 0.828, 0.843, 0.863, 0.874, 0.909,
 ];
 const SCORE_ANCHORS = [
   0, 8, 13, 25, 45, 55, 65,

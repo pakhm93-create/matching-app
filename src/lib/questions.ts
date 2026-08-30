@@ -22,16 +22,16 @@ import type { Question, Section } from './types';
 /**
  * 영역별 가중치 — 합계 1.0.
  *
- * 생활 습관을 15%에서 20%로 올렸다. 음주·흡연이 여기 있는데,
- * 이 둘은 관계를 실제로 가르는 축이라 15% 천장 안에서는 담기지 않았다.
- * 대신 성향과 취향을 낮췄다.
+ * 생활 습관을 15%에서 25%로 올렸다. 음주·흡연이 여기 있는데,
+ * 이 둘은 관계를 실제로 가르는 축이라 낮은 천장 안에서는 담기지 않았다.
+ * 음주 5문항이 9%, 흡연 3문항이 6%를 가져간다.
  */
 export const SECTION_WEIGHTS: Record<Section, number> = {
-  values: 0.40,
-  relationship: 0.25,
-  lifestyle: 0.20,
+  values: 0.38,
+  relationship: 0.23,
+  lifestyle: 0.25,
   personality: 0.10,
-  taste: 0.05,
+  taste: 0.04,
 };
 
 export const SECTION_LABELS: Record<Section, string> = {
@@ -87,6 +87,24 @@ const RAW: RawQuestion[] = [
     fact: 'exercise', factValues: ['often', 'sometimes', 'rarely'], stanceGroup: '운동',
     text: '운동은 얼마나 하시나요?',
     options: ['주 3회 이상', '가끔 해요', '거의 안 해요'] },
+
+  // ── 음주·흡연은 상황으로 다시 묻는다 ──────────────────
+  // "얼마나 마시나요"만으로는 같은 '가끔'이 전혀 다른 사람일 수 있다.
+  // 자리에서 어떻게 행동하는지, 다음 날을 어떻게 대하는지가 실제로 부딪히는 지점이다.
+  // 문장은 짧게 — 길어지면 읽다가 지친다.
+  { id: 'drink_late', section: 'lifestyle', type: 'scale', stanceGroup: '술',
+    text: '술자리가 길어지면 끝까지 남는 편이다' },
+  { id: 'drink_next', section: 'lifestyle', type: 'scale', stanceGroup: '술',
+    text: '다음 날 일정이 있어도 마신다' },
+  { id: 'drink_watch', section: 'lifestyle', type: 'scale', stanceGroup: '술',
+    text: '상대가 취한 모습을 봐도 괜찮다' },
+  { id: 'drink_none_ok', section: 'lifestyle', type: 'scale', stanceGroup: '술',
+    text: '술 없는 자리도 충분히 즐겁다' },
+
+  { id: 'smoke_smell', section: 'lifestyle', type: 'scale', stanceGroup: '담배',
+    text: '담배 냄새가 배어 있으면 신경 쓰인다' },
+  { id: 'smoke_break', section: 'lifestyle', type: 'scale', stanceGroup: '담배',
+    text: '상대가 잠깐 담배 피우러 나가는 건 아무렇지 않다' },
 
   { id: 'f_pet', section: 'lifestyle', type: 'choice',
     fact: 'pet', factValues: ['has', 'none', 'allergic'], stanceGroup: '반려동물',
@@ -356,6 +374,8 @@ const SENSITIVITY: Record<string, number> = {
 
   // 2 — 나를 설명하는 것
   f_smoke: 2, f_drink: 2,
+  drink_late: 2, drink_next: 2, drink_watch: 2, drink_none_ok: 2,
+  smoke_smell: 2, smoke_break: 2,
   p_speak: 2, p_refuse: 2, p_mood: 2, p_trust: 2,
   p_finish: 2, p_worry: 2, p_panic: 2, p_stress: 2, p_abstract: 2,
   soc_many: 2, soc_intro: 2, soc_their: 2, soc_alone: 2,
@@ -396,12 +416,13 @@ const SENSITIVITY: Record<string, number> = {
 // 영역 안에서 서로 나눠 갖는 구조이기 때문이다.
 // ════════════════════════════════════════════════════════
 const WEIGHT: Record<string, number> = {
-  // ── 생활 습관 (영역 20%) ────────────────────────────
+  // ── 생활 습관 (영역 25%) ────────────────────────────
   // 음주 — 사람을 만나는 태도, 자기관리, 식습관까지 함께 따라온다.
-  //        영역의 30%를 가져가 전체로는 6%가 된다
-  f_drink: 9.6,
-  // 흡연 — 같이 사는 문제로 바로 이어진다. 영역의 20% → 전체 4%
-  f_smoke: 6.4,
+  //        5문항 합쳐서 전체의 9%
+  f_drink: 6.4,
+  drink_late: 2, drink_next: 2, drink_watch: 2, drink_none_ok: 2,
+  // 흡연 — 같이 사는 문제로 바로 이어진다. 3문항 합쳐서 전체의 6%
+  f_smoke: 4.8, smoke_smell: 2.4, smoke_break: 2.4,
 
   // ── 가치관 (영역 40%) ──────────────────────────────
   // 종교 — 무엇을 믿는가(3%)보다 얼마나 깊이 관여하는가(4%)가 더 크게 작용한다
