@@ -235,7 +235,7 @@ const RAW: RawQuestion[] = [
   { id: 'con_time', section: 'relationship', type: 'scale',
     text: '화가 나면 혼자 생각할 시간이 필요하다' },
   { id: 'con_yield', section: 'relationship', type: 'scale', bigFive: 'A',
-    text: '다툼이 생기면 내가 먼저 양보하는 편이다' },
+    text: '다투고 나면 내가 먼저 연락하는 편이다' },
   { id: 'con_say', section: 'relationship', type: 'scale',
     text: '서운한 게 있으면 바로 말하는 편이다' },
 
@@ -254,7 +254,7 @@ const RAW: RawQuestion[] = [
   { id: 'bnd_meet', section: 'relationship', type: 'scale',
     text: '연인이 이성과 단둘이 만나는 게 신경 쓰인다' },
   { id: 'bnd_jealous', section: 'relationship', type: 'scale',
-    text: '질투는 애정의 표현이라고 생각한다' },
+    text: '질투를 안 하면 관심이 없는 거라고 느낀다' },
   { id: 'bnd_past', section: 'relationship', type: 'scale',
     text: '상대의 과거 연애 횟수는 신경 쓰이지 않는다' },
 
@@ -262,7 +262,7 @@ const RAW: RawQuestion[] = [
   { id: 'work_achieve', section: 'values', type: 'scale',
     text: '일에서 성취감을 크게 느낀다' },
   { id: 'work_split', section: 'values', type: 'scale',
-    text: '일과 생활은 확실히 분리해야 한다' },
+    text: '퇴근하면 일 생각을 잘 안 하는 편이다' },
   { id: 'work_stable', section: 'values', type: 'scale',
     text: '안정적인 직장이 무엇보다 중요하다' },
   { id: 'work_busy', section: 'values', type: 'scale',
@@ -280,7 +280,7 @@ const RAW: RawQuestion[] = [
   { id: 'mon_gift', section: 'values', type: 'scale',
     text: '기념일 선물은 값보다 마음이 중요하다' },
   { id: 'mon_share', section: 'values', type: 'scale',
-    text: '수입이나 자산을 연인과 공유할 수 있다' },
+    text: '연인에게 통장 잔고를 말할 수 있다' },
 
   // ══ 15. 앞으로의 계획 ═════════════════════════════════
   { id: 'fut_abroad', section: 'values', type: 'scale',
@@ -299,9 +299,9 @@ const RAW: RawQuestion[] = [
   { id: 'role_cost', section: 'values', type: 'scale',
     text: '데이트 비용은 서로 비슷하게 내는 게 편하다' },
   { id: 'role_decide', section: 'values', type: 'scale',
-    text: '큰 결정은 반드시 상의해서 함께 내려야 한다' },
+    text: '혼자 결정하고 나중에 말하는 편이다' },
   { id: 'role_income', section: 'values', type: 'scale',
-    text: '수입 차이가 관계에 영향을 준다고 생각한다' },
+    text: '상대가 나보다 훨씬 많이 벌면 신경 쓰일 것 같다' },
 
   // ══ 17. 결혼과 가족 ═══════════════════════════════════
   { id: 'f_marriage', section: 'values', type: 'choice',
@@ -316,14 +316,14 @@ const RAW: RawQuestion[] = [
     text: '결혼은 반드시 해야 한다고 생각한다' },
   { id: 'fam_cohab', section: 'values', type: 'scale',
     politicsWeight: 0.3, politicsReverse: true,
-    text: '결혼 전 동거에 찬성한다' },
+    text: '살아보지 않고 결혼하는 건 불안하다' },
   { id: 'fam_fund', section: 'values', type: 'scale',
     text: '결혼 자금은 양가가 비슷하게 부담해야 한다' },
   { id: 'fam_dual', section: 'values', type: 'scale',
     politicsWeight: 0.3, politicsReverse: true,
     text: '맞벌이는 당연하다고 생각한다' },
   { id: 'fam_account', section: 'values', type: 'scale',
-    text: '결혼하더라도 각자의 통장은 따로 두는 게 낫다' },
+    text: '돈은 각자 관리하는 편이 마음이 편하다' },
 
   // ══ 18. 종교 ══════════════════════════════════════════
   { id: 'f_religion', section: 'values', type: 'choice',
