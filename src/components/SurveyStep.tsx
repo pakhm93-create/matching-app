@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Answers, Question } from '@/lib/types';
-import { PAGES } from '@/lib/questions';
+import { chapterOf, PAGES } from '@/lib/questions';
 import { Button, Chip, ScaleInput, Shell } from './ui';
 
 /**
@@ -29,6 +29,9 @@ export function SurveyStep({
 
   const pageQuestions = PAGES[page];
   const isLast = page === PAGES.length - 1;
+  const chapter = chapterOf(pageQuestions);
+  // 챕터가 바뀌는 첫 쪽이면 조금 더 눈에 띄게 보여준다
+  const chapterStarts = page === 0 || chapterOf(PAGES[page - 1]) !== chapter;
 
   // 페이지를 넘기면 맨 위부터 보이게 한다
   useEffect(() => {
@@ -89,7 +92,11 @@ export function SurveyStep({
         </div>
       }
     >
-      <div ref={topRef} className="pt-2" />
+      <div ref={topRef} />
+      <div className="pt-1 mb-7">
+        <div className="text-[13px] font-semibold text-accent">{chapter}</div>
+        {chapterStarts && <div className="mt-1.5 h-px w-10 bg-accent/40" />}
+      </div>
 
       <div className="flex flex-col gap-9">
         {pageQuestions.map((q) => {

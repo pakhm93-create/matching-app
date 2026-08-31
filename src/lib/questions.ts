@@ -104,7 +104,7 @@ const RAW: RawQuestion[] = [
   { id: 'smoke_smell', section: 'lifestyle', type: 'scale', stanceGroup: '담배',
     text: '담배 냄새가 배어 있으면 신경 쓰인다' },
   { id: 'smoke_break', section: 'lifestyle', type: 'scale', stanceGroup: '담배',
-    text: '담배를 피우는 사람과도 편하게 지낸다' },
+    text: '옆에서 담배를 피워도 상관없다' },
 
   { id: 'f_pet', section: 'lifestyle', type: 'choice',
     fact: 'pet', factValues: ['has', 'likes', 'none', 'allergic'], stanceGroup: '반려동물',
@@ -333,10 +333,8 @@ const RAW: RawQuestion[] = [
     options: ['없어요', '개신교', '천주교', '불교', '그 외'] },
   { id: 'rel_weight', section: 'values', type: 'scale', stanceGroup: '종교',
     text: '힘든 일이 생기면 기도하거나 마음을 맡기는 곳이 있다' },
-  { id: 'rel_diff', section: 'values', type: 'choice', ordinal: true,
-    text: '상대가 주말마다 종교 활동에 나간다면 어떠세요?',
-    options: ['같이 가볼 수도 있어요', '각자 시간 보내면 돼요',
-              '조금 부담스러울 것 같아요', '만나기 어려울 것 같아요'] },
+  { id: 'rel_diff', section: 'values', type: 'scale',
+    text: '상대의 신앙 생활에 맞춰줄 수 있다' },
   { id: 'rel_join', section: 'values', type: 'scale',
     text: '중요한 날에는 종교 시설을 찾는 편이다' },
   { id: 'rel_marry', section: 'values', type: 'scale',
@@ -344,10 +342,8 @@ const RAW: RawQuestion[] = [
 
   // ══ 19. 정치 — 가장 마지막 ════════════════════════════
   // politicsReverse = 동의할수록 진보. 계산할 때 뒤집어 "높을수록 보수"로 맞춘다.
-  { id: 'pol_tolerate', section: 'values', type: 'choice', ordinal: true,
-    text: '식사 자리에서 나와 정반대 의견이 나왔어요. 어떠세요?',
-    options: ['그런 얘기 나누는 게 재밌어요', '생각이 다른 건 자연스러워요',
-              '되도록 화제를 돌려요', '그 사람과는 거리를 두게 돼요'] },
+  { id: 'pol_tolerate', section: 'values', type: 'scale',
+    text: '정치 얘기가 나오면 화제를 돌리는 편이다' },
   { id: 'pol_samesex', section: 'values', type: 'scale',
     politicsWeight: 1, politicsReverse: true, stanceGroup: '정치',
     text: '동성 결혼을 법적으로 인정해야 한다' },
@@ -540,3 +536,24 @@ export const PAGES: Question[][] = (() => {
   const avg = (p: Question[]) => p.reduce((n, q) => n + q.sensitivity, 0) / p.length;
   return pages.sort((a, b) => avg(a) - avg(b));
 })();
+
+/**
+ * 설문 챕터.
+ *
+ * 문항이 22쪽 내리 이어지면 "언제 끝나지" 싶어 지친다.
+ * 그렇다고 영역별로 몰아 배치하면 종교만 다섯 개 연달아 나와 취조당하는 기분이 든다.
+ *
+ * 그래서 **문항은 섞은 채로 두고, 지금 어느 대목을 지나는지만 이름으로 알린다.**
+ * 쪽 수를 세지 않아도 "아, 이제 연애 얘기구나" 하고 위치가 잡힌다.
+ *
+ * 챕터는 페이지의 평균 민감도로 정한다 — 어차피 가벼운 것부터 배치돼 있어서
+ * 자연스럽게 앞쪽이 생활, 뒤쪽이 가치관이 된다.
+ */
+export function chapterOf(page: Question[]): string {
+  const avg = page.reduce((n, q) => n + q.sensitivity, 0) / page.length;
+  if (avg <= 1.4) return '생활과 취향';
+  if (avg <= 2.4) return '어떤 사람인지';
+  if (avg <= 3.4) return '연애할 때는';
+  if (avg <= 4.4) return '살아가는 방식';
+  return '믿음과 생각';
+}
