@@ -187,10 +187,6 @@ const RAW: RawQuestion[] = [
     text: '새로운 음식에 도전하는 걸 좋아한다' },
   { id: 'eat_health', section: 'lifestyle', type: 'scale',
     text: '건강을 위해 먹는 걸 조절하는 편이다' },
-  { id: 'eat_place', section: 'lifestyle', type: 'scale',
-    text: '맛집을 찾아다니는 걸 좋아한다' },
-  { id: 'eat_simple', section: 'lifestyle', type: 'scale',
-    text: '밥은 대충 때워도 된다고 생각한다' },
 
   // ══ 7. 사람 관계 ══════════════════════════════════════
   { id: 'soc_many', section: 'lifestyle', type: 'scale',
@@ -199,14 +195,12 @@ const RAW: RawQuestion[] = [
     text: '연인을 내 친구들에게 소개하고 싶다' },
   { id: 'soc_their', section: 'lifestyle', type: 'scale',
     text: '연인의 친구들과 함께 있는 자리가 즐겁다' },
-  { id: 'soc_alone', section: 'lifestyle', type: 'scale',
-    text: '혼자 있는 시간이 많아도 외롭지 않다' },
 
   // ══ 8. 대화 스타일 ════════════════════════════════════
   { id: 'talk_first', section: 'relationship', type: 'scale',
     text: '내 이야기를 먼저 꺼내는 편이다' },
   { id: 'talk_listen', section: 'relationship', type: 'scale',
-    text: '상대의 말을 끊지 않고 끝까지 듣는 편이다' },
+    text: '대화하다 보면 내가 말하는 시간이 더 길다' },
   { id: 'talk_kind', section: 'relationship', type: 'choice',
     text: '어떤 대화가 제일 즐거우세요?',
     options: ['일상 잡담', '깊은 속마음', '서로의 관심사', '웃긴 이야기', '앞으로의 계획'] },
@@ -247,16 +241,12 @@ const RAW: RawQuestion[] = [
     options: ['다정한 말', '스킨십', '선물', '함께하는 시간', '도와줄 때'] },
   { id: 'aff_anniv', section: 'relationship', type: 'scale',
     text: '기념일을 챙기는 걸 중요하게 생각한다' },
-  { id: 'aff_public', section: 'relationship', type: 'scale',
-    text: '연애 사실을 주변에 알리는 편이다' },
 
   // ══ 12. 연애 · 경계와 신뢰 ════════════════════════════
   { id: 'bnd_meet', section: 'relationship', type: 'scale',
     text: '연인이 이성과 단둘이 만나는 게 신경 쓰인다' },
   { id: 'bnd_jealous', section: 'relationship', type: 'scale',
     text: '질투를 안 하면 관심이 없는 거라고 느낀다' },
-  { id: 'bnd_past', section: 'relationship', type: 'scale',
-    text: '상대의 과거 연애 횟수는 신경 쓰이지 않는다' },
 
   // ══ 13. 일과 커리어 ═══════════════════════════════════
   { id: 'work_achieve', section: 'values', type: 'scale',
@@ -264,9 +254,7 @@ const RAW: RawQuestion[] = [
   { id: 'work_split', section: 'values', type: 'scale',
     text: '퇴근하면 일 생각을 잘 안 하는 편이다' },
   { id: 'work_stable', section: 'values', type: 'scale',
-    text: '안정적인 직장이 무엇보다 중요하다' },
-  { id: 'work_busy', section: 'values', type: 'scale',
-    text: '상대가 일 때문에 바쁜 건 충분히 이해할 수 있다' },
+    text: '한 직장에 오래 다니는 편이 좋다' },
 
   // ══ 14. 돈·소비 ═══════════════════════════════════════
   { id: 'mon_impulse', section: 'values', type: 'scale', stanceGroup: '소비',
@@ -276,9 +264,9 @@ const RAW: RawQuestion[] = [
   { id: 'mon_debt', section: 'values', type: 'scale', stanceGroup: '소비',
     text: '빚을 내서라도 투자할 수 있다고 생각한다' },
   { id: 'mon_diff', section: 'values', type: 'scale',
-    text: '상대의 소비 습관이 나와 다르면 신경 쓰일 것 같다' },
+    text: '돈 쓰는 기준이 다르면 자주 부딪힐 것 같다' },
   { id: 'mon_gift', section: 'values', type: 'scale',
-    text: '기념일 선물은 값보다 마음이 중요하다' },
+    text: '받고 싶은 걸 미리 말해주는 편이 좋다' },
   { id: 'mon_share', section: 'values', type: 'scale',
     text: '연인에게 통장 잔고를 말할 수 있다' },
 
@@ -286,7 +274,7 @@ const RAW: RawQuestion[] = [
   { id: 'fut_abroad', section: 'values', type: 'scale',
     text: '언젠가 해외에서 살아보고 싶다' },
   { id: 'fut_home', section: 'values', type: 'scale',
-    text: '내 집 마련은 꼭 필요하다고 생각한다' },
+    text: '집을 사는 것보다 지금 쓰고 싶은 데 쓰겠다' },
   { id: 'fut_plan', section: 'values', type: 'scale',
     text: '5년 뒤의 계획을 구체적으로 그려두는 편이다' },
   { id: 'fut_move', section: 'values', type: 'scale',
@@ -313,15 +301,15 @@ const RAW: RawQuestion[] = [
     text: '아이를 갖고 싶으신가요?',
     options: ['갖고 싶어요', '갖고 싶지 않아요', '아직 모르겠어요'] },
   { id: 'fam_must', section: 'values', type: 'scale', stanceGroup: '결혼',
-    text: '결혼은 반드시 해야 한다고 생각한다' },
+    text: '혼자 사는 삶도 충분히 좋다고 생각한다' },
   { id: 'fam_cohab', section: 'values', type: 'scale',
     politicsWeight: 0.3, politicsReverse: true,
     text: '살아보지 않고 결혼하는 건 불안하다' },
   { id: 'fam_fund', section: 'values', type: 'scale',
-    text: '결혼 자금은 양가가 비슷하게 부담해야 한다' },
+    text: '결혼 비용은 형편이 되는 쪽이 더 내도 괜찮다' },
   { id: 'fam_dual', section: 'values', type: 'scale',
     politicsWeight: 0.3, politicsReverse: true,
-    text: '맞벌이는 당연하다고 생각한다' },
+    text: '결혼해도 각자 일은 계속하는 게 자연스럽다' },
   { id: 'fam_account', section: 'values', type: 'scale',
     text: '돈은 각자 관리하는 편이 마음이 편하다' },
 
