@@ -7,7 +7,7 @@
  * ⚠️ 어디까지나 임시 저장이다. 브라우저를 바꾸면 사라진다.
  *    계정과 함께 서버에 저장하는 것은 Supabase를 붙이면서 한다.
  */
-import type { Answers } from './types';
+import type { Answers, Strictness } from './types';
 import type { ProfileResult } from '@/components/ProfileStep';
 import type { StanceResult } from '@/components/StanceStep';
 
@@ -17,6 +17,8 @@ export interface Draft {
   profile?: ProfileResult;
   stance?: StanceResult;
   answers: Answers;
+  /** 매칭 기준. 메일 링크를 누르고 돌아왔을 때 다시 묻지 않으려고 함께 담는다 */
+  strictness?: Strictness;
   /** 설문 몇 쪽까지 갔는지 */
   page: number;
   savedAt: number;

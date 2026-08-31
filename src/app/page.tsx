@@ -10,9 +10,12 @@ import { SurveyStep } from '@/components/SurveyStep';
 import { StrictnessStep } from '@/components/StrictnessStep';
 import { ProfilePage } from '@/components/ProfilePage';
 import { MatchesView } from '@/components/MatchesView';
+import { SignInStep } from '@/components/SignInStep';
+import { currentUserId, loadFromCloud, saveToCloud, supabaseReady } from '@/lib/account';
 import { Button, Modal, Shell } from '@/components/ui';
 
-type Step = 'intro' | 'profile' | 'stance' | 'survey' | 'strictness' | 'me' | 'matches';
+type Step =
+  | 'intro' | 'profile' | 'stance' | 'survey' | 'strictness' | 'signin' | 'me' | 'matches';
 
 export default function Page() {
   const [step, setStep] = useState<Step>('intro');
@@ -27,10 +30,56 @@ export default function Page() {
   const [editing, setEditing] = useState(false);
   /** 저장된 작성분이 있으면 이어서 할지 물어본다 */
   const [draft, setDraft] = useState<Draft | null>(null);
+  /** 계정에 저장까지 끝났는가 — 프로필 화면에 표시한다 */
+  const [savedToCloud, setSavedToCloud] = useState(false);
 
+  /**
+   * 첫 화면을 그리기 전에 두 가지를 확인한다.
+   * ① 이미 로그인돼 있는가 (메일 링크를 누르고 막 돌아왔을 수도 있다)
+   * ② 브라우저에 작성하던 내용이 남아 있는가
+   */
   useEffect(() => {
-    const d = loadDraft();
-    if (d && Object.keys(d.answers).length > 0) setDraft(d);
+    let alive = true;
+
+    (async () => {
+      const d = loadDraft();
+
+      if (supabaseReady && (await currentUserId())) {
+        // 서버에 이미 저장된 내용이 있으면 그걸 쓴다
+        const cloud = await loadFromCloud();
+        if (!alive) return;
+        if (cloud) {
+          setProfileResult(cloud.profile);
+          setStanceResult(cloud.stance);
+          setStrictness(cloud.strictness);
+          setAnswers(cloud.answers);
+          setSavedToCloud(true);
+          setStep('me');
+          return;
+        }
+        // 로그인은 됐는데 서버에 없다 = 메일 링크를 누르고 막 돌아온 참이다.
+        // 브라우저에 남아 있는 작성분을 그대로 올려준다
+        if (d?.profile && d.stance && d.strictness) {
+          const r = await saveToCloud({
+            profile: d.profile, stance: d.stance,
+            strictness: d.strictness, answers: d.answers,
+          });
+          if (!alive) return;
+          setProfileResult(d.profile);
+          setStanceResult(d.stance);
+          setStrictness(d.strictness);
+          setAnswers(d.answers);
+          setSavedToCloud(r.ok);
+          setStep('me');
+          return;
+        }
+      }
+
+      if (!alive) return;
+      if (d && Object.keys(d.answers).length > 0) setDraft(d);
+    })();
+
+    return () => { alive = false; };
   }, []);
 
   const persist = (next: Partial<Omit<Draft, 'savedAt'>>) => {
@@ -38,8 +87,25 @@ export default function Page() {
       profile: profileResult,
       stance: stanceResult,
       answers,
+      strictness,
       page: surveyPage,
       ...next,
+    });
+  };
+
+  /** 로그인한 사람이 내용을 고치면 서버에도 반영한다 */
+  const syncIfSignedIn = async (over: Partial<{
+    profile: ProfileResult; stance: StanceResult; strictness: Strictness; answers: Answers;
+  }> = {}) => {
+    if (!savedToCloud) return;
+    const p = over.profile ?? profileResult;
+    const s = over.stance ?? stanceResult;
+    if (!p || !s) return;
+    await saveToCloud({
+      profile: p,
+      stance: s,
+      strictness: over.strictness ?? strictness,
+      answers: over.answers ?? answers,
     });
   };
 
@@ -47,6 +113,7 @@ export default function Page() {
     if (!draft) return;
     if (draft.profile) setProfileResult(draft.profile);
     if (draft.stance) setStanceResult(draft.stance);
+    if (draft.strictness) setStrictness(draft.strictness);
     setAnswers(draft.answers);
     setSurveyPage(draft.page);
     setDraft(null);
@@ -104,7 +171,7 @@ export default function Page() {
           setProfileResult(r);
           persist({ profile: r });
           // 수정 중이면 설문 흐름으로 넘어가지 않고 프로필로 돌아간다
-          if (editing) { setEditing(false); setStep('me'); }
+          if (editing) { setEditing(false); void syncIfSignedIn({ profile: r }); setStep('me'); }
           else setStep('stance');
         }}
       />
@@ -120,7 +187,7 @@ export default function Page() {
         onNext={(r) => {
           setStanceResult(r);
           persist({ stance: r });
-          if (editing) { setEditing(false); setStep('me'); }
+          if (editing) { setEditing(false); void syncIfSignedIn({ stance: r }); setStep('me'); }
           else setStep('survey');
         }}
       />
@@ -154,11 +221,28 @@ export default function Page() {
         initial={strictness}
         onNext={(v) => {
           setStrictness(v);
+          persist({ strictness: v });
+          if (editing) {
+            setEditing(false);
+            void syncIfSignedIn({ strictness: v });
+            setStep('me');
+            return;
+          }
           // 처음 설문을 마친 경우에만 완료 안내를 띄운다
-          if (!editing) setJustFinished(true);
-          setEditing(false);
-          setStep('me');
+          setJustFinished(true);
+          // 저장 서버가 붙어 있으면 여기서 계정을 만들 기회를 준다.
+          // 시작할 때가 아니라 다 끝낸 지금 묻는 것이 핵심이다
+          setStep(supabaseReady ? 'signin' : 'me');
         }}
+      />
+    );
+  }
+
+  if (step === 'signin') {
+    return (
+      <SignInStep
+        onSkip={() => setStep('me')}
+        onSent={() => { /* 메일을 보낸 화면에 머문다 */ }}
       />
     );
   }
@@ -186,6 +270,8 @@ export default function Page() {
       onChangeStrictness={() => { setEditing(true); setStep('strictness'); }}
       onEditStances={() => { setEditing(true); setStep('stance'); }}
       onPreviewMatches={() => setStep('matches')}
+      savedToCloud={savedToCloud}
+      onSaveAccount={supabaseReady ? () => setStep('signin') : undefined}
     />
   );
 }

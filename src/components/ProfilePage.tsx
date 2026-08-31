@@ -36,6 +36,7 @@ function Row({ label, value }: { label: string; value: string }) {
  */
 export function ProfilePage({
   me, onEdit, onPreviewMatches, onChangeStrictness, onEditStances, justFinished, onDismiss,
+  savedToCloud, onSaveAccount,
 }: {
   me: User;
   onEdit: () => void;
@@ -45,6 +46,10 @@ export function ProfilePage({
   /** 설문을 방금 마쳤으면 완료 안내를 팝업으로 띄운다 */
   justFinished?: boolean;
   onDismiss?: () => void;
+  /** 계정에 저장까지 끝났는가 */
+  savedToCloud?: boolean;
+  /** 아직 저장 전이면 저장 화면으로 보내는 버튼을 띄운다. 없으면 아무것도 안 보인다 */
+  onSaveAccount?: () => void;
 }) {
   const [showDone, setShowDone] = useState(justFinished ?? false);
   const persona = useMemo(() => personaOf(me.answers), [me.answers]);
@@ -112,6 +117,23 @@ export function ProfilePage({
             ))}
           </div>
         </div>
+
+        {/* 계정 저장 — 아직 안 했으면 조용히 한 번 더 권한다 */}
+        {onSaveAccount && !savedToCloud && (
+          <Card>
+            <div className="text-[15px] font-semibold mb-1.5">아직 이 브라우저에만 있어요</div>
+            <p className="text-[13px] text-muted leading-relaxed mb-3">
+              폰을 바꾸거나 기록을 지우면 답해주신 내용이 사라집니다.
+              메일 주소만 남겨두면 어디서든 이어서 볼 수 있어요.
+            </p>
+            <button
+              onClick={onSaveAccount}
+              className="text-[13px] text-accent font-semibold active:opacity-60"
+            >
+              메일로 저장하기
+            </button>
+          </Card>
+        )}
 
         {/* 이번 주 인연 — 아직 탐색 중 */}
         <Card>
