@@ -126,7 +126,8 @@ create table if not exists public.token_ledger (
   user_id   uuid not null references public.profiles(id) on delete cascade,
   -- 양수는 충전, 음수는 사용
   amount    int not null,
-  -- signup_bonus / purchase / first_message / extra_match / refund_no_reply
+  -- signup_bonus / purchase / send_message / open_message
+  -- / refund_no_reply(무응답) / refund_replied(답장해서 열람비 반환) / extra_match
   reason    text not null,
   -- 어떤 대화에 썼는지 (돌려줄 때 찾기 위해)
   match_id  uuid references public.matches(id) on delete set null,
@@ -249,9 +250,9 @@ begin
   values (new.id, '', 2000, 1, '', '{}', '', '', 170)
   on conflict (id) do nothing;
 
-  -- 가입 선물: 첫 연락 한 번은 무료
+  -- 가입 선물: 첫 대화를 무료로 해보게 한다 (한 번 말 걸고 한 번 받아볼 수 있는 양)
   insert into public.token_ledger (user_id, amount, reason)
-  values (new.id, 1, 'signup_bonus');
+  values (new.id, 2, 'signup_bonus');
   return new;
 end $$;
 
