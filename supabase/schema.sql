@@ -135,7 +135,12 @@ create table if not exists public.token_ledger (
 create index if not exists token_user_idx on public.token_ledger(user_id, created_at desc);
 
 -- 지금 잔액
-create or replace view public.token_balance as
+--
+-- ⚠️ security_invoker를 반드시 켠다. 뷰는 기본적으로 "만든 사람 권한"으로 돌아가서
+--    아래 token_ledger에 건 접근 권한을 그냥 통과해버린다.
+--    그대로 두면 누구나 모든 사람의 토큰 잔액을 읽을 수 있다.
+create or replace view public.token_balance
+  with (security_invoker = on) as
   select user_id, coalesce(sum(amount), 0)::int as balance
   from public.token_ledger group by user_id;
 
@@ -156,16 +161,16 @@ alter table public.messages     enable row level security;
 alter table public.token_ledger enable row level security;
 
 -- 프로필: 내 것은 읽고 쓸 수 있다
-drop policy if exists "내 프로필 읽기" on public.profiles;
-create policy "내 프로필 읽기" on public.profiles
+drop policy if exists "own profile read" on public.profiles;
+create policy "own profile read" on public.profiles
   for select using (auth.uid() = id);
-drop policy if exists "내 프로필 쓰기" on public.profiles;
-create policy "내 프로필 쓰기" on public.profiles
+drop policy if exists "own profile write" on public.profiles;
+create policy "own profile write" on public.profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
 
 -- 프로필: 나에게 배급된 사람의 프로필도 읽을 수 있다
-drop policy if exists "배급된 상대 프로필 읽기" on public.profiles;
-create policy "배급된 상대 프로필 읽기" on public.profiles
+drop policy if exists "delivered profile read" on public.profiles;
+create policy "delivered profile read" on public.profiles
   for select using (
     exists (
       select 1 from public.deliveries d
@@ -174,16 +179,16 @@ create policy "배급된 상대 프로필 읽기" on public.profiles
   );
 
 -- 설문 응답: 남에게 절대 보여주지 않는다. 매칭 계산은 서버에서만 한다
-drop policy if exists "내 응답만" on public.answers;
-create policy "내 응답만" on public.answers
+drop policy if exists "own answers only" on public.answers;
+create policy "own answers only" on public.answers
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- 사진: 내 것 + 배급된 상대 것
-drop policy if exists "내 사진 관리" on public.photos;
-create policy "내 사진 관리" on public.photos
+drop policy if exists "own photos" on public.photos;
+create policy "own photos" on public.photos
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-drop policy if exists "배급된 상대 사진 보기" on public.photos;
-create policy "배급된 상대 사진 보기" on public.photos
+drop policy if exists "delivered photos read" on public.photos;
+create policy "delivered photos read" on public.photos
   for select using (
     exists (
       select 1 from public.deliveries d
@@ -192,27 +197,27 @@ create policy "배급된 상대 사진 보기" on public.photos
   );
 
 -- 배급: 나에게 온 것만
-drop policy if exists "내 배급만" on public.deliveries;
-create policy "내 배급만" on public.deliveries
+drop policy if exists "own deliveries" on public.deliveries;
+create policy "own deliveries" on public.deliveries
   for select using (auth.uid() = user_id);
 
 -- 좋아요: 내가 누른 것만 보이고 만들 수 있다.
 -- 상대가 나를 눌렀는지는 알려주지 않는다 (그걸 아는 것 자체가 유료 기능이다)
-drop policy if exists "내가 누른 좋아요" on public.likes;
-create policy "내가 누른 좋아요" on public.likes
+drop policy if exists "own likes read" on public.likes;
+create policy "own likes read" on public.likes
   for select using (auth.uid() = from_id);
-drop policy if exists "좋아요 누르기" on public.likes;
-create policy "좋아요 누르기" on public.likes
+drop policy if exists "own likes insert" on public.likes;
+create policy "own likes insert" on public.likes
   for insert with check (auth.uid() = from_id);
 
 -- 매칭: 내가 낀 것만
-drop policy if exists "내 매칭" on public.matches;
-create policy "내 매칭" on public.matches
+drop policy if exists "own matches" on public.matches;
+create policy "own matches" on public.matches
   for select using (auth.uid() = a_id or auth.uid() = b_id);
 
 -- 대화: 내가 낀 매칭의 메시지만
-drop policy if exists "내 대화 읽기" on public.messages;
-create policy "내 대화 읽기" on public.messages
+drop policy if exists "own messages read" on public.messages;
+create policy "own messages read" on public.messages
   for select using (
     exists (
       select 1 from public.matches m
@@ -220,8 +225,8 @@ create policy "내 대화 읽기" on public.messages
         and (m.a_id = auth.uid() or m.b_id = auth.uid())
     )
   );
-drop policy if exists "내 대화 쓰기" on public.messages;
-create policy "내 대화 쓰기" on public.messages
+drop policy if exists "own messages write" on public.messages;
+create policy "own messages write" on public.messages
   for insert with check (
     sender_id = auth.uid()
     and exists (
@@ -232,8 +237,8 @@ create policy "내 대화 쓰기" on public.messages
   );
 
 -- 토큰: 내역은 읽기만. 넣고 빼는 건 서버에서만 한다
-drop policy if exists "내 토큰 내역" on public.token_ledger;
-create policy "내 토큰 내역" on public.token_ledger
+drop policy if exists "own tokens" on public.token_ledger;
+create policy "own tokens" on public.token_ledger
   for select using (auth.uid() = user_id);
 
 -- ── 가입하면 프로필 자리를 만들어둔다 ──────────────────
@@ -254,3 +259,7 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- 이 함수는 가입할 때 자동으로만 돌아야 한다. 바깥에서 부를 수 없게 막는다.
+-- (security definer 함수는 접근 권한을 통과하므로 열어두면 안 된다)
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
